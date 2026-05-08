@@ -4,6 +4,12 @@ import * as path from "path";
 import { callAI } from "./aiClient";
 import { buildWorkspaceContext } from "./contextBuilder";
 
+interface ChatWebviewMessage {
+  type: "ask" | "insertCode";
+  text?: string;
+  code?: string;
+}
+
 /**
  * ChatPanel manages the VS Code WebviewPanel for the SolanaPilot chat interface.
  */
@@ -62,11 +68,11 @@ export class ChatPanel {
    * Set up the webview message handler
    */
   private setupMessageHandler(): void {
-    this.panel.webview.onDidReceiveMessage(async (message: any) => {
+    this.panel.webview.onDidReceiveMessage(async (message: ChatWebviewMessage) => {
       try {
-        if (message.type === "ask") {
+        if (message.type === "ask" && typeof message.text === "string") {
           await this.handleAskMessage(message.text);
-        } else if (message.type === "insertCode") {
+        } else if (message.type === "insertCode" && typeof message.code === "string") {
           await this.handleInsertCodeMessage(message.code);
         }
       } catch (err) {
@@ -110,8 +116,7 @@ export class ChatPanel {
         ? `## Recent Conversation:\n${historyString}\n\n## Workspace Context:\n${workspaceContext}`
         : `## Recent Conversation:\n${historyString}`;
 
-      // Call AI with maintainHistory = true for multi-turn context
-      const aiResponse = await callAI(userMessage, fullContext, false, true);
+      const aiResponse = await callAI(userMessage, fullContext, false);
 
       // Add assistant response to history
       this.conversationHistory.push({
@@ -172,7 +177,7 @@ export class ChatPanel {
   /**
    * Send message to webview
    */
-  private sendToWebview(message: any): void {
+  private sendToWebview(message: { type: string; text?: string }): void {
     this.panel.webview.postMessage(message);
   }
 

@@ -14,6 +14,7 @@
   ],
   "activationEvents": [
     "onStartupFinished",
+    "onCommand:solanaCopilot.openChat",
     "onCommand:solanaCopilot.setApiKey",
     "onCommand:solanaCopilot.generateProgram",
     "onCommand:solanaCopilot.deployToDevnet",

@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { SOLANA_SYSTEM_PROMPT } from './systemPrompt'
 
-const MODEL_NAME = 'gemini-2.0-flash'
+const MODEL_NAME = 'gemini-2.5-flash'
 
 let genAI: GoogleGenerativeAI | undefined
 
@@ -32,12 +32,8 @@ export async function callAI(
     workspaceContext || 'No workspace context available'
   )
 
-  const chat = model.startChat({
-    history: [],
-    systemInstruction: systemPrompt
-  })
-
-  const result = await chat.sendMessage(userMessage)
+  const fullPrompt = `${systemPrompt}\n\nUSER REQUEST:\n${userMessage}`
+  const result = await model.generateContent(fullPrompt)
   const response = result.response.text()
 
   if (!response || response.trim() === '') {
