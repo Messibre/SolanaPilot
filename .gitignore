@@ -1,0 +1,49 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+*.log
+
+# Build outputs
+out/
+dist/
+*.vsix
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# TypeScript
+*.js
+!out/**/*.js
+*.map
+*.d.ts
+
+# Git
+.git/
+
+# OS
+Thumbs.db
+.DS_Store
+*.bak
+
+# Solana
+target/
+.anchor/
+.rustflags
+
+# Test
+coverage/
+.nyc_output/
+
+# System
+thumbs.db
