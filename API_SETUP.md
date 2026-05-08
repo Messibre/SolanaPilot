@@ -5,7 +5,7 @@ This document explains all external APIs used by SolanaPilot, where to get them,
 ## 📋 Table of Contents
 
 1. [Gemini API (Required)](#gemini-api-required)
-2. [Solana RPC Endpoints (Optional, for future features)](#solana-rpc-optional)
+2. [Solana RPC Endpoints (Optional)](#solana-rpc-optional)
 3. [How to Store Keys Securely](#how-to-store-keys-securely)
 4. [Testing the APIs](#testing-the-apis)
 
@@ -14,7 +14,7 @@ This document explains all external APIs used by SolanaPilot, where to get them,
 ## 🤖 Gemini API (Required)
 
 ### What It Is
-Google's latest generative AI model (`gemini-2.5-flash`). Used for:
+Google's Gemini API. In the current implementation, SolanaPilot uses the `gemini-2.5-flash` model for:
 - AI chat responses in the chat panel
 - Code generation prompts
 - Security analysis
@@ -40,13 +40,17 @@ Google's latest generative AI model (`gemini-2.5-flash`). Used for:
 
 ---
 
-## 🔗 Solana RPC (Optional, for Future Features)
+## 🔗 Solana RPC (Optional)
 
 ### What It Is
-Remote Procedure Call endpoint for reading/writing on-chain data. Used in:
-- Feature 3: Deploy validation
-- Feature 4: Frontend state fetching
-- Network status checks
+Remote Procedure Call endpoint for reading/writing on-chain data.
+
+Right now, Feature 2 deploys through the local Solana CLI and Anchor CLI, so an RPC API key is not required for generation or deploy.
+
+You only need an RPC provider if you later add:
+- frontend state reads
+- custom network status panels
+- direct RPC calls from the extension instead of CLI tooling
 
 ### Free RPC Endpoints
 
@@ -90,13 +94,9 @@ This is what SolanaPilot uses by default.
 - Keys are **never** logged or printed
 - Only accessible within VS Code process
 
-**How to use in code:**
-```typescript
-// In src/extension.ts
-const apiKey = await context.secrets.get('solanaPilot.geminiApiKey')
-if (!apiKey) {
-  await context.secrets.store('solanaPilot.geminiApiKey', userProvidedKey)
-}
+Stored secret key name:
+```text
+solanaPilot.geminiApiKey
 ```
 
 ### Option 2: Environment Variables (.env file)
@@ -173,7 +173,26 @@ Test that workspace context is correctly gathered:
 
 **Expected**: Code appears in your `test.rs` file at cursor position
 
-### Test 4: Terminal Tests (for future features)
+### Test 4: Smart Contract Generator + Deploy
+
+1. Open a folder in VS Code.
+2. Run: `Solana Copilot: Generate Smart Contract`
+3. Enter a description such as: `A voting program where users create polls and cast votes on-chain`
+4. Enter a snake_case program name such as: `voting_program`
+5. Wait for files to be written into the workspace.
+6. Click `Deploy to Devnet` when prompted.
+
+Expected:
+- `Anchor.toml`, workspace `Cargo.toml`, program `Cargo.toml`, `lib.rs`, and a test file are created
+- `lib.rs` opens automatically
+- the integrated terminal runs `solana config set --url devnet`, `solana airdrop 2`, `anchor build`, and `anchor deploy`
+
+Prerequisites for deploy:
+- `solana` CLI installed
+- `anchor` CLI installed
+- a local Solana wallet configured for devnet
+
+### Test 5: Terminal Tooling
 
 **Test Solana CLI availability:**
 ```bash
@@ -242,7 +261,7 @@ avm use latest
 
 1. **Now**: Set your Gemini API key via VS Code
 2. **Test**: Open chat and ask about Solana
-3. **Later**: Add Helius RPC when implementing Features 3-4
+3. **Later**: Add Helius RPC when implementing RPC-backed features
 4. **Production**: Move keys to environment variables or GitHub Secrets
 
 ---
