@@ -1,7 +1,9 @@
 import * as vscode from 'vscode'
 import { initAI } from './aiClient'
+import { ChatPanel } from './chatPanel'
 import { getWorkspaceRoot } from './fileWriter'
 import { generateAndDeploy } from './programGenerator'
+import { getApiKey, saveApiKey } from './secretStorage'
 import { TerminalRunner } from './terminalRunner'
 
 async function configureApiKey(context: vscode.ExtensionContext): Promise<void> {
@@ -16,13 +18,23 @@ async function configureApiKey(context: vscode.ExtensionContext): Promise<void> 
     return
   }
 
-  await context.secrets.store('solanaPilot.geminiApiKey', apiKey.trim())
+  await saveApiKey(context, apiKey.trim())
   initAI(apiKey.trim())
   void vscode.window.showInformationMessage('Gemini API key saved for SolanaPilot.')
 }
 
+async function ensureAIReady(context: vscode.ExtensionContext): Promise<boolean> {
+  const apiKey = await getApiKey(context, false)
+  if (!apiKey) {
+    return false
+  }
+
+  initAI(apiKey.trim())
+  return true
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const savedKey = await context.secrets.get('solanaPilot.geminiApiKey')
+  const savedKey = await getApiKey(context, true)
   if (savedKey) {
     initAI(savedKey)
   }
@@ -34,8 +46,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.generateProgram', () => {
-      void generateAndDeploy(context)
+    vscode.commands.registerCommand('solanaCopilot.generateProgram', async () => {
+      if (!(await ensureAIReady(context))) {
+        return
+      }
+
+      await generateAndDeploy(context)
     })
   )
 
@@ -61,8 +77,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.openChat', () => {
-      void vscode.window.showInformationMessage('Chat panel is not implemented in this Feature 2 slice.')
+    vscode.commands.registerCommand('solanaCopilot.openChat', async () => {
+      if (!(await ensureAIReady(context))) {
+        return
+      }
+
+      ChatPanel.createOrShow(context)
     })
   )
 }

@@ -101,6 +101,17 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
   if (parsed.files.length === 0) {
     throw new Error('AI returned empty files array')
   }
+  if (
+    parsed.files.some(
+      (file) =>
+        !file ||
+        typeof file.path !== 'string' ||
+        file.path.trim().length === 0 ||
+        typeof file.content !== 'string'
+    )
+  ) {
+    throw new Error('AI response contains invalid file entries')
+  }
 
   return {
     files: parsed.files,
@@ -146,6 +157,12 @@ export async function generateAndDeploy(context: vscode.ExtensionContext): Promi
   void context
 
   try {
+    const workspaceRoot = getWorkspaceRoot()
+    if (!workspaceRoot) {
+      vscode.window.showErrorMessage('Please open a folder first (File -> Open Folder)')
+      return
+    }
+
     const description = await vscode.window.showInputBox({
       prompt: '🧠 Describe your Solana program',
       placeHolder: 'e.g. A voting program where users create polls and cast votes on-chain',
@@ -221,10 +238,10 @@ export async function generateAndDeploy(context: vscode.ExtensionContext): Promi
 
     if (choice === 'Deploy to Devnet') {
       const runner = TerminalRunner.getInstance()
-      runner.runDeploy(getWorkspaceRoot()!)
+      runner.runDeploy(workspaceRoot)
     } else if (choice === 'Also Generate Frontend') {
       const runner = TerminalRunner.getInstance()
-      runner.runDeploy(getWorkspaceRoot()!)
+      runner.runDeploy(workspaceRoot)
       void vscode.window.showInformationMessage(
         '🏗️ Deploy running. Run "SolanaPilot: Generate Frontend" after deploy completes.'
       )
