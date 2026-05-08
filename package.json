@@ -1,0 +1,131 @@
+{
+  "name": "solana-copilot",
+  "displayName": "SolanaPilot",
+  "description": "AI-powered Solana blockchain development copilot",
+  "version": "1.0.0",
+  "publisher": "solana-copilot",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:solanaCopilot.setApiKey",
+    "onCommand:solanaCopilot.generateProgram",
+    "onCommand:solanaCopilot.deployToDevnet",
+    "onCommand:solanaCopilot.generateFrontend"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "solanaCopilot.openChat",
+        "title": "Open Chat",
+        "category": "Solana Copilot",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "solanaCopilot.setApiKey",
+        "title": "Set Gemini API Key",
+        "category": "Solana Copilot"
+      },
+      {
+        "command": "solanaCopilot.generateProgram",
+        "title": "Generate Smart Contract",
+        "category": "Solana Copilot",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "solanaCopilot.deployToDevnet",
+        "title": "Deploy to Devnet",
+        "category": "Solana Copilot",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "solanaCopilot.generateFrontend",
+        "title": "Generate React Frontend",
+        "category": "Solana Copilot",
+        "icon": "$(browser)"
+      },
+      {
+        "command": "solanaCopilot.explainCode",
+        "title": "Solana Copilot: Explain This Code"
+      },
+      {
+        "command": "solanaCopilot.fixCode",
+        "title": "Solana Copilot: Fix Solana Issue"
+      },
+      {
+        "command": "solanaCopilot.insertCode",
+        "title": "Insert Code at Cursor",
+        "category": "Solana Copilot"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "solanaCopilot.openChat",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s"
+      },
+      {
+        "command": "solanaCopilot.generateProgram",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "solanaCopilot.explainCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "solanaCopilot.fixCode",
+          "when": "editorHasSelection"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SolanaPilot",
+      "properties": {
+        "solanaPilot.autoContextRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh workspace context on each message"
+        },
+        "solanaPilot.maxHistoryMessages": {
+          "type": "number",
+          "default": 10,
+          "description": "Number of conversation turns to keep in context"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.18.0",
+    "@types/vscode": "^1.84.0",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
+    "esbuild": "^0.19.5",
+    "eslint": "^8.51.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.3.0"
+  }
+}
