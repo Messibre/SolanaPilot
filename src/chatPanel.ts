@@ -277,9 +277,13 @@ export class ChatPanel {
         throw new Error("Agent mode did not return any files to write.");
       }
 
-      const confirmed = await this.previewWorkspaceChanges(workspaceRoot, parsed.files);
+      const confirmed = await this.previewWorkspaceChanges(
+        workspaceRoot,
+        parsed.files,
+      );
       if (!confirmed) {
-        const cancelled = "Agent mode preview cancelled before writing any files.";
+        const cancelled =
+          "Agent mode preview cancelled before writing any files.";
         this.pushConversationEntry({
           role: "assistant",
           content: cancelled,
@@ -538,7 +542,9 @@ export class ChatPanel {
     const response = parsed as Record<string, unknown>;
 
     if (response.type !== "workspace_update") {
-      throw new Error('Agent mode response must include "type": "workspace_update".');
+      throw new Error(
+        'Agent mode response must include "type": "workspace_update".',
+      );
     }
 
     // Basic validation
@@ -595,12 +601,16 @@ export class ChatPanel {
 
     return {
       type: "workspace_update",
-      summary: typeof response.summary === "string" ? response.summary : undefined,
+      summary:
+        typeof response.summary === "string" ? response.summary : undefined,
       files: validatedFiles,
       notes: Array.isArray(response.notes)
-        ? response.notes.filter((item): item is string => typeof item === "string")
+        ? response.notes.filter(
+            (item): item is string => typeof item === "string",
+          )
         : undefined,
-      openFile: typeof response.openFile === "string" ? response.openFile : undefined,
+      openFile:
+        typeof response.openFile === "string" ? response.openFile : undefined,
     };
   }
 
@@ -620,20 +630,31 @@ export class ChatPanel {
     }
 
     if (previewChoice === "Preview Diff") {
-      const previewDir = fs.mkdtempSync(path.join(os.tmpdir(), "solanapilot-preview-"));
+      const previewDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "solanapilot-preview-"),
+      );
       const maxPreviewFiles = Math.min(files.length, 5);
 
       try {
         for (let index = 0; index < maxPreviewFiles; index++) {
           const file = files[index];
-          const originalPath = path.resolve(workspaceRoot, path.normalize(file.path));
+          const originalPath = path.resolve(
+            workspaceRoot,
+            path.normalize(file.path),
+          );
           const originalContent = fs.existsSync(originalPath)
             ? fs.readFileSync(originalPath, "utf8")
             : "";
 
           const safePreviewName = file.path.replace(/[\\/:*?"<>|]/g, "_");
-          const originalPreviewPath = path.join(previewDir, `${index}-original-${safePreviewName}`);
-          const updatedPreviewPath = path.join(previewDir, `${index}-updated-${safePreviewName}`);
+          const originalPreviewPath = path.join(
+            previewDir,
+            `${index}-original-${safePreviewName}`,
+          );
+          const updatedPreviewPath = path.join(
+            previewDir,
+            `${index}-updated-${safePreviewName}`,
+          );
 
           fs.writeFileSync(originalPreviewPath, originalContent, "utf8");
           fs.writeFileSync(updatedPreviewPath, file.content, "utf8");

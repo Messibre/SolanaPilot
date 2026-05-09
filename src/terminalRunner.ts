@@ -231,9 +231,19 @@ export class TerminalRunner {
 
     add(this.buildChangeDirectoryCommand(workspaceRoot));
     add(this.appendOutputLine(outputFile, ""));
-    add(this.appendOutputLine(outputFile, "========================================"));
+    add(
+      this.appendOutputLine(
+        outputFile,
+        "========================================",
+      ),
+    );
     add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.start));
-    add(this.appendOutputLine(outputFile, "========================================"));
+    add(
+      this.appendOutputLine(
+        outputFile,
+        "========================================",
+      ),
+    );
     add(this.appendOutputLine(outputFile, ""));
     add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.config));
     add(this.pipeCommandToOutput(DEPLOY_COMMANDS.setDevnet, outputFile));
@@ -319,9 +329,19 @@ export class TerminalRunner {
 
     const tempDir = os.tmpdir();
     const markerId = Date.now();
-    const markerFile = path.join(tempDir, `solanapilot-deploy-${markerId}.marker`);
-    const outputFile = path.join(tempDir, `solanapilot-deploy-${markerId}.output`);
-    const script = this.buildDeployScript(workspaceRoot, markerFile, outputFile);
+    const markerFile = path.join(
+      tempDir,
+      `solanapilot-deploy-${markerId}.marker`,
+    );
+    const outputFile = path.join(
+      tempDir,
+      `solanapilot-deploy-${markerId}.output`,
+    );
+    const script = this.buildDeployScript(
+      workspaceRoot,
+      markerFile,
+      outputFile,
+    );
 
     terminal.sendText(script, true);
 
@@ -452,9 +472,14 @@ export class TerminalRunner {
 
   public async runFrontendSetup(workspaceRoot: string): Promise<void> {
     const appRoot = path.join(workspaceRoot, "app");
-    const outputChannel = vscode.window.createOutputChannel("SolanaPilot Frontend");
+    const outputChannel = vscode.window.createOutputChannel(
+      "SolanaPilot Frontend",
+    );
     outputChannel.show(true);
-    this.appendOutputChannelLine(outputChannel, "SolanaPilot frontend setup starting...");
+    this.appendOutputChannelLine(
+      outputChannel,
+      "SolanaPilot frontend setup starting...",
+    );
 
     if (!fs.existsSync(appRoot)) {
       vscode.window.showErrorMessage(
@@ -463,7 +488,10 @@ export class TerminalRunner {
       return;
     }
 
-    this.appendOutputChannelLine(outputChannel, "Installing dependencies with npm install...");
+    this.appendOutputChannelLine(
+      outputChannel,
+      "Installing dependencies with npm install...",
+    );
     const installCode = await this.runCommandInFolder(
       this.getNpmCommand(),
       ["install"],
@@ -479,7 +507,10 @@ export class TerminalRunner {
     }
 
     this.appendOutputChannelLine(outputChannel, "Starting Vite dev server...");
-    const detectedPort = await this.launchFrontendDevServer(appRoot, outputChannel);
+    const detectedPort = await this.launchFrontendDevServer(
+      appRoot,
+      outputChannel,
+    );
 
     if (!detectedPort) {
       vscode.window.showWarningMessage(

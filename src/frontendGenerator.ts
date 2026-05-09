@@ -44,9 +44,7 @@ function validateFrontendGenerationResponse(
     }
 
     if (typeof fileRecord.content !== "string") {
-      throw new Error(
-        `File content for ${fileRecord.path} is not a string.`,
-      );
+      throw new Error(`File content for ${fileRecord.path} is not a string.`);
     }
 
     if (path.isAbsolute(fileRecord.path)) {
@@ -75,8 +73,9 @@ function validateFrontendGenerationResponse(
   return {
     type: "frontend",
     files,
-    startCommand:
-      isNonEmptyString(response.startCommand) ? response.startCommand : undefined,
+    startCommand: isNonEmptyString(response.startCommand)
+      ? response.startCommand
+      : undefined,
   };
 }
 
@@ -127,7 +126,9 @@ async function extractProgramID(workspaceRoot: string): Promise<string | null> {
         continue;
       }
 
-      const match = trimmed.match(/^[A-Za-z0-9_]+\s*=\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"$/);
+      const match = trimmed.match(
+        /^[A-Za-z0-9_]+\s*=\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"$/,
+      );
       if (match) {
         return match[1];
       }

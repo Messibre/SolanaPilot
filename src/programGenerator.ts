@@ -200,37 +200,63 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
 
   cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
 
-  // Try to parse JSON, with improved error handling
+  // Try to parse JSON with multiple repair strategies
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned) as unknown;
   } catch (parseError) {
-    // If parsing fails, try to fix common issues with unescaped newlines
-    // This is a workaround for AI models returning JSON with actual newlines in strings
-    try {
-      // Replace actual newlines inside JSON strings with escaped newlines
-      // This regex is conservative and only replaces newlines in content values
-      let fixed = cleaned.replace(
-        /"content":\s*"([^"]*)"/g,
-        (match: string) => {
-          const escaped = match
-            .replace(/\n/g, "\\n")
-            .replace(/\r/g, "\\r")
-            .replace(/\t/g, "\\t");
-          return escaped;
-        },
-      );
+    let fixed: string | null = null;
 
+    // Strategy 1: Fix unescaped newlines and control characters
+    try {
+      fixed = cleaned;
+      // Escape bare newlines and carriage returns that aren't already escaped
+      fixed = fixed.replace(/(?<!\\)\n/g, "\\n").replace(/(?<!\\)\r/g, "\\r");
       parsed = JSON.parse(fixed) as unknown;
-    } catch (fixError) {
-      // Last resort: show helpful error with context
-      const errorContext = cleaned.substring(
-        Math.max(0, 1100 - 200),
-        Math.min(cleaned.length, 1100 + 200),
-      );
-      throw new Error(
-        `Failed to parse AI response as JSON. Error: ${parseError instanceof Error ? parseError.message : String(parseError)}\n\nContext around error: ...${errorContext}...`,
-      );
+    } catch (fixError1) {
+      // Strategy 2: More aggressive - escape all literal newlines in content fields
+      try {
+        fixed = cleaned.replace(
+          /"content"\s*:\s*"([^"\\]|\\.)*"/g,
+          (match: string) => {
+            // Extract the string value and escape newlines
+            const value = match.substring(0, match.length);
+            const escaped = value
+              .replace(/\n/g, "\\n")
+              .replace(/\r/g, "\\r")
+              .replace(/\t/g, "\\t");
+            return escaped;
+          },
+        );
+        parsed = JSON.parse(fixed) as unknown;
+      } catch (fixError2) {
+        // Strategy 3: Try replacing common JSON structural issues
+        try {
+          fixed = cleaned
+            // Fix missing commas between properties
+            .replace(/"\s*\n\s*"/g, '", "')
+            // Fix escaped backslashes in content
+            .replace(/\\\\n/g, "\\n")
+            .replace(/\\\\r/g, "\\r");
+          parsed = JSON.parse(fixed) as unknown;
+        } catch (fixError3) {
+          // Final attempt: log all errors for debugging
+          const errorLines = [
+            `Original error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+            `Fix attempt 1 error: ${fixError1 instanceof Error ? fixError1.message : String(fixError1)}`,
+            `Fix attempt 2 error: ${fixError2 instanceof Error ? fixError2.message : String(fixError2)}`,
+            `Fix attempt 3 error: ${fixError3 instanceof Error ? fixError3.message : String(fixError3)}`,
+          ];
+
+          const contextStart = Math.max(0, 500);
+          const contextEnd = Math.min(cleaned.length, 800);
+          const errorContext = cleaned.substring(contextStart, contextEnd);
+
+          throw new Error(
+            `Failed to parse AI response as JSON after 3 repair attempts.\n${errorLines.join("\n")}\n\nJSON preview: ...${errorContext}...`,
+          );
+        }
+      }
     }
   }
 
@@ -240,34 +266,52 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
 async function callAIWithSingleRetry(
   prompt: string,
 ): Promise<ProgramGenerationResponse> {
+  let lastError: Error | null = null;
+
+  // Try original request
   try {
     const rawResponse = await callAI(prompt, "", true);
     return parseAIResponse(rawResponse);
   } catch (error) {
-    vscode.window.showErrorMessage("Failed to parse AI response. Retrying...");
+    lastError = error instanceof Error ? error : new Error(String(error));
+    console.error("[SolanaPilot] Initial AI response parse failed:", lastError);
+  }
+
+  // Try retry with clearer instructions
+  try {
+    vscode.window.showInformationMessage(
+      "Retrying program generation with stricter JSON format...",
+    );
     const retryPrompt = `${prompt}
 
-Your previous response was not valid JSON.
-Return ONLY the JSON object with no other text.`;
+IMPORTANT: Your previous response was not valid JSON.
+Return ONLY the complete JSON object, starting with { and ending with }.
+Do NOT include any markdown, backticks, or explanation text.
+Ensure all newlines in string values are escaped as \\n`;
 
-    try {
-      const retryResponse = await callAI(retryPrompt, "", true);
-      return parseAIResponse(retryResponse);
-    } catch (retryError) {
-      const retryMessage =
-        retryError instanceof Error ? retryError.message : "Unknown AI error";
-      const choice = await vscode.window.showErrorMessage(
-        `Failed to generate valid program JSON: ${retryMessage}`,
-        "Open Chat",
-      );
-
-      if (choice === "Open Chat") {
-        void vscode.commands.executeCommand("solanaCopilot.openChat");
-      }
-
-      throw new Error(retryMessage);
-    }
+    const retryResponse = await callAI(retryPrompt, "", true);
+    return parseAIResponse(retryResponse);
+  } catch (retryError) {
+    lastError =
+      retryError instanceof Error ? retryError : new Error(String(retryError));
+    console.error("[SolanaPilot] Retry parse failed:", lastError);
   }
+
+  // Show error and offer chat help
+  const retryMessage = lastError?.message || "Unknown AI error";
+  const choice = await vscode.window.showErrorMessage(
+    `Failed to generate valid program JSON: ${retryMessage}\n\nTry adjusting your description or opening Chat for help.`,
+    "Open Chat",
+    "Try Again",
+  );
+
+  if (choice === "Open Chat") {
+    void vscode.commands.executeCommand("solanaCopilot.openChat");
+  } else if (choice === "Try Again") {
+    return callAIWithSingleRetry(prompt);
+  }
+
+  throw new Error(retryMessage);
 }
 
 export async function generateAndDeploy(

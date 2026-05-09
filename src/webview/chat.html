@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'wasm-unsafe-eval'; img-src data: https:; font-src data:" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'wasm-unsafe-eval'; img-src data: https:; font-src data:"
+    />
     <title>SolanaPilot</title>
     <style>
       * {
@@ -642,7 +645,7 @@
         <div class="status" id="modeStatus">
           Ask mode: read-only Solana help
         </div>
-        <div style="display: flex; gap: 12px; align-items: center;">
+        <div style="display: flex; gap: 12px; align-items: center">
           <div class="mode-switch">
             <button class="mode-btn active" id="askModeBtn" type="button">
               Ask
@@ -651,7 +654,12 @@
               Agent
             </button>
           </div>
-          <button class="clear-btn" id="clearBtn" type="button" title="Clear chat history">
+          <button
+            class="clear-btn"
+            id="clearBtn"
+            type="button"
+            title="Clear chat history"
+          >
             ✕ Clear
           </button>
         </div>
@@ -687,14 +695,21 @@
         <div class="composer-hint" id="composerHint">
           Ask mode — workspace read-only
         </div>
-        <div style="position: relative; width: 100%;">
+        <div style="position: relative; width: 100%">
           <textarea
             id="userInput"
             rows="1"
             placeholder="Ask about your Solana code..."
             maxlength="5000"
           ></textarea>
-          <div style="font-size: 11px; color: #707070; margin-top: 4px; text-align: right;">
+          <div
+            style="
+              font-size: 11px;
+              color: #707070;
+              margin-top: 4px;
+              text-align: right;
+            "
+          >
             <span id="charCount">0</span>/5000
           </div>
         </div>
@@ -703,7 +718,20 @@
     </div>
 
     <script>
-      const vscode = acquireVsCodeApi();
+      // Safely acquire VS Code API with fallback
+      let vscode;
+      try {
+        vscode = acquireVsCodeApi();
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to acquire VS Code API", e);
+        // Provide a dummy object for development/testing
+        vscode = {
+          postMessage: (msg) => console.log("[PostMessage]", msg),
+          getState: () => ({}),
+          setState: (state) => console.log("[SetState]", state),
+        };
+      }
+
       const messages = document.getElementById("messages");
       const userInput = document.getElementById("userInput");
       const sendBtn = document.getElementById("sendBtn");
@@ -714,6 +742,11 @@
       const composerHint = document.getElementById("composerHint");
       const quickChips = document.getElementById("quickChips");
       const charCount = document.getElementById("charCount");
+
+      // Verify DOM elements exist
+      if (!messages || !userInput || !sendBtn) {
+        console.error("[SolanaPilot] Failed to find required DOM elements");
+      }
 
       const savedState = vscode.getState() || {};
       let currentMode = savedState.mode === "agent" ? "agent" : "ask";
@@ -1037,7 +1070,7 @@
 
       function clearChatHistory() {
         const shouldClear = confirm(
-          "Clear all chat history? This cannot be undone."
+          "Clear all chat history? This cannot be undone.",
         );
         if (!shouldClear) {
           return;
@@ -1066,20 +1099,26 @@
         showToast("Chat history cleared");
       }
 
-      askModeBtn.addEventListener("click", () => setMode("ask", true));
-      agentModeBtn.addEventListener("click", () => setMode("agent", true));
-      sendBtn.addEventListener("click", () => sendMessage());
-      clearBtn.addEventListener("click", () => clearChatHistory());
-      userInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
-      userInput.addEventListener("input", () => {
-        resizeTextarea();
-        updateCharCount();
-      });
+      // Attach event listeners with safety checks
+      if (askModeBtn)
+        askModeBtn.addEventListener("click", () => setMode("ask", true));
+      if (agentModeBtn)
+        agentModeBtn.addEventListener("click", () => setMode("agent", true));
+      if (sendBtn) sendBtn.addEventListener("click", () => sendMessage());
+      if (clearBtn)
+        clearBtn.addEventListener("click", () => clearChatHistory());
+      if (userInput) {
+        userInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+        userInput.addEventListener("input", () => {
+          resizeTextarea();
+          updateCharCount();
+        });
+      }
 
       window.addEventListener("message", (event) => {
         const message = event.data;
@@ -1101,8 +1140,14 @@
         }
       });
 
-      setMode(currentMode, false);
-      renderQuickChips();
+      // Initialize UI
+      try {
+        setMode(currentMode, false);
+        renderQuickChips();
+        console.log("[SolanaPilot] Chat UI initialized successfully");
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to initialize chat UI", e);
+      }
     </script>
   </body>
 </html>

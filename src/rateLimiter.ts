@@ -16,10 +16,16 @@ class RateLimiter {
    * Check if a call is allowed and record it if so.
    * Returns { allowed: boolean, remaining: number, resetAt: Date | null }
    */
-  public checkAndRecord(): { allowed: boolean; remaining: number; resetAt: Date | null } {
+  public checkAndRecord(): {
+    allowed: boolean;
+    remaining: number;
+    resetAt: Date | null;
+  } {
     const now = Date.now();
     // Remove calls older than 1 hour
-    this.calls = this.calls.filter((call) => now - call.timestamp < this.hourInMs);
+    this.calls = this.calls.filter(
+      (call) => now - call.timestamp < this.hourInMs,
+    );
 
     const remaining = this.maxCallsPerHour - this.calls.length;
 
@@ -45,11 +51,16 @@ class RateLimiter {
    */
   public getStats(): { used: number; remaining: number; resetAt: Date | null } {
     const now = Date.now();
-    this.calls = this.calls.filter((call) => now - call.timestamp < this.hourInMs);
+    this.calls = this.calls.filter(
+      (call) => now - call.timestamp < this.hourInMs,
+    );
 
     const used = this.calls.length;
     const remaining = this.maxCallsPerHour - used;
-    const resetAt = this.calls.length > 0 ? new Date(this.calls[0].timestamp + this.hourInMs) : null;
+    const resetAt =
+      this.calls.length > 0
+        ? new Date(this.calls[0].timestamp + this.hourInMs)
+        : null;
 
     return { used, remaining, resetAt };
   }
