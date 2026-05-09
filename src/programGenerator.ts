@@ -274,17 +274,30 @@ export async function generateAndDeploy(
         if (!generated) {
           throw new Error("No AI response received");
         }
-
-        progress.report({ message: "Writing files to workspace..." });
-        const wrote = await writeFilesToWorkspace(generated.files);
-        if (!wrote) {
-          throw new Error("Failed to write generated files to workspace");
-        }
       },
     );
 
     if (!generated) {
       return;
+    }
+
+    // Ask for confirmation before writing files to workspace
+    const confirmWrite = await vscode.window.showInformationMessage(
+      `⚠️ About to write ${generated.files.length} files to your workspace:\n\n${generated.files.map((f) => `• ${f.path}`).join("\n")}\n\nDo you want to proceed?`,
+      { modal: true },
+      "Yes, Write Files",
+      "Cancel",
+    );
+
+    if (confirmWrite !== "Yes, Write Files") {
+      vscode.window.showInformationMessage("Program generation cancelled.");
+      return;
+    }
+
+    // Now write files after confirmation
+    const wrote = await writeFilesToWorkspace(generated.files);
+    if (!wrote) {
+      throw new Error("Failed to write generated files to workspace");
     }
 
     const files = generated.files;
