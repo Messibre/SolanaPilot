@@ -56,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   )
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.deployToDevnet', () => {
+    vscode.commands.registerCommand('solanaCopilot.deployToDevnet', async () => {
       const root = getWorkspaceRoot()
       if (!root) {
         void vscode.window.showErrorMessage('Open a workspace folder first')
@@ -64,7 +64,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const runner = TerminalRunner.getInstance()
-      runner.runDeploy(root)
+      await runner.runDeploy(root)
     })
   )
 
