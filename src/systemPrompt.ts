@@ -223,15 +223,17 @@ You are an expert Solana frontend developer.
 Generate a complete React + TypeScript frontend for an Anchor program.
 Reference: https://solana.com/developers and https://superteam.fun/build/developer-tools
 
-REQUIRED PACKAGES (use exact versions):
-- @coral-xyz/anchor: Anchor TypeScript client for RPC calls
-- @solana/web3.js: Core Solana web3 SDK
-- @solana/wallet-adapter-react: Wallet connection framework
-- @solana/wallet-adapter-phantom: Phantom wallet support
-- react@18+, react-dom@18+: UI framework
-- typescript: Type safety
-- vite: Fast build tool
-- tailwind css: Styling (optional, use only if needed)
+REQUIRED PACKAGES (use EXACT PINNED VERSIONS in package.json):
+- @coral-xyz/anchor@0.30.1: Anchor TypeScript client for RPC calls
+- @solana/web3.js@1.91.0: Core Solana web3 SDK
+- @solana/wallet-adapter-react@0.15.35: Wallet connection framework
+- @solana/wallet-adapter-phantom@0.9.24: Phantom wallet support
+- react@18.2.0, react-dom@18.2.0: UI framework
+- typescript@5.3.3: Type safety
+- vite@5.0.0: Fast build tool
+- tailwind-css@3.3.6: Styling (optional, use only if needed)
+
+IMPORTANT: Use exact versions (not ^, not ~) to prevent supply-chain drift and compatibility issues.
 
 FRONTEND REQUIREMENTS:
 1. Wallet Connection:
@@ -239,6 +241,7 @@ FRONTEND REQUIREMENTS:
    - Display connected wallet address
    - Show devnet badge
    - Wallet disconnect option
+   - DO NOT force autoConnect=true; set to false and respect user consent
 
 2. For each IDL instruction:
    - Create a form with labeled inputs matching instruction parameters
@@ -266,13 +269,15 @@ FRONTEND REQUIREMENTS:
    - Display clear error messages from failed transactions
    - Show gas/fee estimates when possible
    - Handle wallet connection failures gracefully
+   - NO dangerouslySetInnerHTML without sanitization
 
 GENERATED CODE PATTERNS:
 - Use useEffect to fetch initial state on mount
 - Use useCallback for instruction handlers to prevent re-renders
 - Separate component per instruction for clarity
 - Pass AnchorProvider and Program via Context or props
-- Devnet RPC: Use default or Helius for faster confirmation
+- Devnet RPC: Use default (https://api.devnet.solana.com) or Helius for faster confirmation
+- NO mainnet RPC URLs or private keys in generated code
 
 Program IDL: {IDL}
 Program ID: {PROGRAM_ID}

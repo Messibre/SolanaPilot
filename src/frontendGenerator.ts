@@ -336,9 +336,9 @@ async function openFileInEditor(absolutePath: string): Promise<void> {
 
 /**
  * Start the Vite dev server and open browser.
+ * Handles port conflicts gracefully with helpful messages.
  */
 function startDevServer(workspaceRoot: string): void {
-  const runner = TerminalRunner.getInstance();
   const terminal = vscode.window.createTerminal({
     name: "🖥️ Solana dApp",
     iconPath: new vscode.ThemeIcon("globe"),
@@ -354,17 +354,33 @@ cd "${escapedRoot}/app" 2>&1
 echo "📦 Installing dependencies..."
 npm install
 if [ $? -eq 0 ]; then
+  echo ""
   echo "🚀 Starting dev server..."
-  npm run dev
+  echo "ℹ️  If port 5173 is already in use, Vite will automatically try the next port (5174, 5175, etc)"
+  echo ""
+  npm run dev 2>&1 | tee dev-server.log
+  if grep -q "EADDRINUSE" dev-server.log 2>/dev/null; then
+    echo ""
+    echo "⚠️  Port 5173 is already in use. Check the output above for the actual port being used."
+    echo "💡 Tip: Close any other dev servers or use 'lsof -i :5173' to find the process."
+  fi
 else
   echo "❌ npm install failed. Check the error above."
+  echo "💡 Try running 'npm install' manually in the app/ directory."
 fi
 `;
 
   terminal.sendText(script);
 
-  // Open browser after 3 seconds
+  // Open browser after 4 seconds (Vite needs time to start)
+  // This will try localhost:5173, which may redirect if that port is in use
   setTimeout(() => {
     void vscode.env.openExternal(vscode.Uri.parse("http://localhost:5173"));
-  }, 3000);
+  }, 4000);
+
+  // Show helpful info message
+  vscode.window.showInformationMessage(
+    "🚀 Dev server starting... Opening browser at localhost:5173 (check terminal if port conflict occurs)",
+    "View Log",
+  );
 }
