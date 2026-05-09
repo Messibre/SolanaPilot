@@ -43,10 +43,23 @@ export async function getApiKey(
 
     // Prompt user for API key
     const userKey = await vscode.window.showInputBox({
-      prompt: "Enter your Gemini API key",
+      prompt: "Enter your Gemini API key (free at aistudio.google.com)",
       placeHolder: "AIza...",
       password: true,
       ignoreFocusOut: true,
+      validateInput: (value) => {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          return "API key cannot be empty";
+        }
+        if (!trimmed.startsWith("AIza")) {
+          return 'Gemini API keys typically start with "AIza"';
+        }
+        if (trimmed.length < 20) {
+          return "API key seems too short. Make sure you copied it fully.";
+        }
+        return undefined;
+      },
     });
 
     if (userKey) {

@@ -1,32 +1,32 @@
-import * as vscode from "vscode";
-import * as os from "os";
+import { spawn } from "child_process";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
+import * as vscode from "vscode";
 
-// Terminal command constants for maintainability
 const DEPLOY_COMMANDS = {
-  SET_DEVNET: "solana config set --url devnet",
-  AIRDROP: "solana airdrop 2",
-  BUILD: "anchor build",
-  DEPLOY: "anchor deploy",
-};
+  setDevnet: "solana config set --url devnet",
+  airdrop: "solana airdrop 2",
+  build: "anchor build",
+  deploy: "anchor deploy",
+} as const;
 
 const DEPLOY_MESSAGES = {
-  START: "🚀 SolanaPilot — Deploying to Devnet",
-  CONFIG: "🔧 Configuring Solana CLI to devnet...",
-  AIRDROP: "💰 Airdropping SOL for deployment fees...",
-  BUILD: "🏗️ Building Anchor program (this takes 2-4 minutes)...",
-  DEPLOY: "🚀 Deploying to devnet...",
-  WARNING:
-    "⚠️ SECURITY: Your default keypair will be used. Never deploy from mainnet without review!",
-};
+  start: "SolanaPilot - Deploying to Devnet",
+  config: "Configuring Solana CLI to devnet...",
+  airdrop: "Airdropping SOL for deployment fees...",
+  build: "Building Anchor program (this may take a few minutes)...",
+  deploy: "Deploying to devnet...",
+  warning:
+    "Security note: your configured Solana keypair will be used. Review the target workspace before deploying.",
+} as const;
 
 const MARKERS = {
-  AIRDROP_FAILED: "⚠️ AIRDROP_FAILED",
-  BUILD_FAILED: "❌ BUILD_FAILED",
-  DEPLOY_SUCCESS: "✅ DEPLOY_SUCCESS",
-  DEPLOY_FAILED: "❌ DEPLOY_FAILED",
-};
+  airdropFailed: "AIRDROP_FAILED",
+  buildFailed: "BUILD_FAILED",
+  deploySuccess: "DEPLOY_SUCCESS",
+  deployFailed: "DEPLOY_FAILED",
+} as const;
 
 export class TerminalRunner {
   private terminal: vscode.Terminal | undefined;
@@ -48,31 +48,255 @@ export class TerminalRunner {
     return TerminalRunner.instance;
   }
 
-  private getOrCreateTerminal(): vscode.Terminal {
+  private getOrCreateTerminal(name: string = "SolanaPilot"): vscode.Terminal {
     if (this.terminal) {
       return this.terminal;
     }
 
     this.terminal = vscode.window.createTerminal({
-      name: "🚀 Solana Copilot",
+      name,
       iconPath: new vscode.ThemeIcon("rocket"),
-      message: "SolanaPilot Deployment Terminal",
+      message: "SolanaPilot terminal",
     });
 
     return this.terminal;
   }
 
-  /**
-   * Deploy a Solana Anchor program to devnet.
-   * Creates a terminal, runs the full deployment pipeline,
-   * watches for success/failure events, and shows appropriate notifications.
-   * Includes private key security warnings.
-   */
+  private quoteForShell(value: string): string {
+    if (process.platform === "win32") {
+      return `'${value.replace(/'/g, "''")}'`;
+    }
+
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+  }
+
+  private buildChangeDirectoryCommand(targetPath: string): string {
+    const quoted = this.quoteForShell(targetPath);
+    return process.platform === "win32"
+      ? `Set-Location -LiteralPath ${quoted}`
+      : `cd ${quoted}`;
+  }
+
+  private pipeCommandToOutput(command: string, outputFile: string): string {
+    const quotedOutput = this.quoteForShell(outputFile);
+    return process.platform === "win32"
+      ? `& ${command} 2>&1 | Tee-Object -FilePath ${quotedOutput} -Append`
+      : `${command} 2>&1 | tee -a ${quotedOutput}`;
+  }
+
+  private appendOutputLine(outputFile: string, text: string): string {
+    const quotedOutput = this.quoteForShell(outputFile);
+    const quotedText = this.quoteForShell(text);
+    return process.platform === "win32"
+      ? `${quotedText} | Tee-Object -FilePath ${quotedOutput} -Append`
+      : `echo ${quotedText} | tee -a ${quotedOutput}`;
+  }
+
+  private writeMarker(markerFile: string, value: string): string {
+    const quotedMarker = this.quoteForShell(markerFile);
+    const quotedValue = this.quoteForShell(value);
+    return process.platform === "win32"
+      ? `Set-Content -Path ${quotedMarker} -Value ${quotedValue}`
+      : `echo ${quotedValue} > ${quotedMarker}`;
+  }
+
+  private getNpmCommand(): string {
+    return process.platform === "win32" ? "npm.cmd" : "npm";
+  }
+
+  private appendOutputChannelLine(
+    outputChannel: vscode.OutputChannel,
+    line: string,
+  ): void {
+    outputChannel.appendLine(line);
+  }
+
+  private detectVitePort(chunk: string): number | null {
+    const patterns = [
+      /Local:\s+http:\/\/localhost:(\d+)/i,
+      /Local:\s+http:\/\/127\.0\.0\.1:(\d+)/i,
+      /http:\/\/localhost:(\d+)/i,
+      /http:\/\/127\.0\.0\.1:(\d+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = chunk.match(pattern);
+      if (match) {
+        return Number(match[1]);
+      }
+    }
+
+    return null;
+  }
+
+  private async runCommandInFolder(
+    command: string,
+    args: string[],
+    cwd: string,
+    outputChannel: vscode.OutputChannel,
+  ): Promise<number> {
+    return await new Promise<number>((resolve) => {
+      const child = spawn(command, args, {
+        cwd,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      child.stdout.on("data", (data: Buffer) => {
+        this.appendOutputChannelLine(outputChannel, data.toString().trimEnd());
+      });
+
+      child.stderr.on("data", (data: Buffer) => {
+        this.appendOutputChannelLine(outputChannel, data.toString().trimEnd());
+      });
+
+      child.on("close", (code) => {
+        resolve(code ?? 0);
+      });
+    });
+  }
+
+  private async launchFrontendDevServer(
+    appRoot: string,
+    outputChannel: vscode.OutputChannel,
+  ): Promise<number | null> {
+    return await new Promise<number | null>((resolve) => {
+      const npmCommand = this.getNpmCommand();
+      const devProcess = spawn(npmCommand, ["run", "dev"], {
+        cwd: appRoot,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let resolved = false;
+      let buffer = "";
+
+      const finalize = (port: number | null) => {
+        if (resolved) {
+          return;
+        }
+
+        resolved = true;
+        resolve(port);
+      };
+
+      const handleChunk = (chunk: Buffer) => {
+        const text = chunk.toString();
+        buffer += text;
+        this.appendOutputChannelLine(outputChannel, text.trimEnd());
+
+        const detectedPort = this.detectVitePort(buffer);
+        if (detectedPort && !resolved) {
+          finalize(detectedPort);
+          void vscode.env.openExternal(
+            vscode.Uri.parse(`http://localhost:${detectedPort}`),
+          );
+
+          if (detectedPort !== 5173) {
+            void vscode.window.showInformationMessage(
+              `Vite started on port ${detectedPort} because port 5173 was in use.`,
+            );
+          }
+        }
+
+        if (/EADDRINUSE|Port 5173 is in use|trying another port/i.test(text)) {
+          void vscode.window.showWarningMessage(
+            "Port 5173 is already in use. Vite will pick another port automatically.",
+          );
+        }
+      };
+
+      devProcess.stdout.on("data", handleChunk);
+      devProcess.stderr.on("data", handleChunk);
+
+      devProcess.on("close", (code) => {
+        if (!resolved) {
+          this.appendOutputChannelLine(
+            outputChannel,
+            `Dev server exited before a port was detected (code ${code ?? 0}).`,
+          );
+          finalize(null);
+        }
+      });
+    });
+  }
+
+  private buildDeployScript(
+    workspaceRoot: string,
+    markerFile: string,
+    outputFile: string,
+  ): string {
+    const lines: string[] = [];
+    const add = (line: string) => lines.push(line);
+
+    add(this.buildChangeDirectoryCommand(workspaceRoot));
+    add(this.appendOutputLine(outputFile, ""));
+    add(this.appendOutputLine(outputFile, "========================================"));
+    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.start));
+    add(this.appendOutputLine(outputFile, "========================================"));
+    add(this.appendOutputLine(outputFile, ""));
+    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.config));
+    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.setDevnet, outputFile));
+    add(this.appendOutputLine(outputFile, ""));
+    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.airdrop));
+    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.airdrop, outputFile));
+
+    if (process.platform === "win32") {
+      add(
+        `if ($LASTEXITCODE -ne 0) { ${this.appendOutputLine(outputFile, MARKERS.airdropFailed)} }`,
+      );
+    } else {
+      add(
+        `if [ $? -ne 0 ]; then ${this.appendOutputLine(outputFile, MARKERS.airdropFailed)}; fi`,
+      );
+    }
+
+    add(this.appendOutputLine(outputFile, ""));
+    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.build));
+    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.build, outputFile));
+
+    if (process.platform === "win32") {
+      add("if ($LASTEXITCODE -ne 0) {");
+      add(`  ${this.appendOutputLine(outputFile, MARKERS.buildFailed)}`);
+      add(`  ${this.writeMarker(markerFile, MARKERS.buildFailed)}`);
+      add("  exit 1");
+      add("}");
+    } else {
+      add("if [ $? -ne 0 ]; then");
+      add(`  ${this.appendOutputLine(outputFile, MARKERS.buildFailed)}`);
+      add(`  ${this.writeMarker(markerFile, MARKERS.buildFailed)}`);
+      add("  exit 1");
+      add("fi");
+    }
+
+    add(this.appendOutputLine(outputFile, ""));
+    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.deploy));
+    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.deploy, outputFile));
+
+    if (process.platform === "win32") {
+      add("if ($LASTEXITCODE -eq 0) {");
+      add(`  ${this.appendOutputLine(outputFile, MARKERS.deploySuccess)}`);
+      add(`  ${this.writeMarker(markerFile, "SUCCESS")}`);
+      add("} else {");
+      add(`  ${this.appendOutputLine(outputFile, MARKERS.deployFailed)}`);
+      add(`  ${this.writeMarker(markerFile, "FAILED")}`);
+      add("}");
+    } else {
+      add("if [ $? -eq 0 ]; then");
+      add(`  ${this.appendOutputLine(outputFile, MARKERS.deploySuccess)}`);
+      add(`  ${this.writeMarker(markerFile, "SUCCESS")}`);
+      add("else");
+      add(`  ${this.appendOutputLine(outputFile, MARKERS.deployFailed)}`);
+      add(`  ${this.writeMarker(markerFile, "FAILED")}`);
+      add("fi");
+    }
+
+    return lines.join("\n");
+  }
+
   public async runDeploy(workspaceRoot: string): Promise<void> {
-    // Security check: warn user about using default keypair
     const confirmed = await vscode.window.showWarningMessage(
-      DEPLOY_MESSAGES.WARNING +
-        "\n\nDeploying to devnet only. Confirm you understand the security implications.",
+      `${DEPLOY_MESSAGES.warning}\n\nThis runs the full devnet deploy flow in the integrated terminal.`,
       { modal: true },
       "Proceed with Devnet Deploy",
       "Cancel",
@@ -83,146 +307,92 @@ export class TerminalRunner {
       return;
     }
 
-    const terminalName = "🚀 Solana Copilot";
+    this.terminal?.dispose();
+    this.terminal = vscode.window.createTerminal({
+      name: "SolanaPilot Deploy",
+      iconPath: new vscode.ThemeIcon("rocket"),
+      message: "SolanaPilot deployment terminal",
+    });
 
-    // Close any existing terminal with the same name
-    vscode.window.terminals
-      .filter((t) => t.name === terminalName)
-      .forEach((t) => t.dispose());
-
-    const terminal = vscode.window.createTerminal(terminalName);
+    const terminal = this.terminal;
     terminal.show(true);
 
-    // Build the deployment script with error handling and markers
-    const escapedWorkspaceRoot = workspaceRoot.replace(/"/g, '\\"');
-
-    // Use a temp marker file to track completion
     const tempDir = os.tmpdir();
     const markerId = Date.now();
-    const markerFile = path.join(tempDir, `solana-deploy-${markerId}.marker`);
-    const outputFile = path.join(tempDir, `solana-deploy-${markerId}.output`);
+    const markerFile = path.join(tempDir, `solanapilot-deploy-${markerId}.marker`);
+    const outputFile = path.join(tempDir, `solanapilot-deploy-${markerId}.output`);
+    const script = this.buildDeployScript(workspaceRoot, markerFile, outputFile);
 
-    const script = `
-cd "${escapedWorkspaceRoot}" 2>&1 | tee "${outputFile}"
-echo "" | tee -a "${outputFile}"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "${outputFile}"
-echo "  ${DEPLOY_MESSAGES.START}" | tee -a "${outputFile}"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "${outputFile}"
-echo "" | tee -a "${outputFile}"
-echo "${DEPLOY_MESSAGES.CONFIG}" | tee -a "${outputFile}"
-${DEPLOY_COMMANDS.SET_DEVNET} 2>&1 | tee -a "${outputFile}"
-echo "" | tee -a "${outputFile}"
-echo "${DEPLOY_MESSAGES.AIRDROP}" | tee -a "${outputFile}"
-${DEPLOY_COMMANDS.AIRDROP} 2>&1 | tee -a "${outputFile}" || echo "${MARKERS.AIRDROP_FAILED}" | tee -a "${outputFile}"
-echo "" | tee -a "${outputFile}"
-echo "${DEPLOY_MESSAGES.BUILD}" | tee -a "${outputFile}"
-${DEPLOY_COMMANDS.BUILD} 2>&1 | tee -a "${outputFile}"
-if [ $? -ne 0 ]; then
-  echo "${MARKERS.BUILD_FAILED}" | tee -a "${outputFile}"
-  echo "BUILD_FAILED" > "${markerFile}"
-  exit 1
-fi
-echo "" | tee -a "${outputFile}"
-echo "${DEPLOY_MESSAGES.DEPLOY}" | tee -a "${outputFile}"
-${DEPLOY_COMMANDS.DEPLOY} 2>&1 | tee -a "${outputFile}"
-if [ $? -eq 0 ]; then
-  echo "${MARKERS.DEPLOY_SUCCESS}" | tee -a "${outputFile}"
-  echo "SUCCESS" > "${markerFile}"
-else
-  echo "${MARKERS.DEPLOY_FAILED}" | tee -a "${outputFile}"
-  echo "FAILED" > "${markerFile}"
-fi
-`;
+    terminal.sendText(script, true);
 
-    // Send the script to the terminal
-    terminal.sendText(script);
-
-    // Monitor the marker file for completion
-    return new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       let checkCount = 0;
-      const maxChecks = 360; // 6 minutes with 1-second intervals
+      const maxChecks = 360;
 
       const checkCompletion = async () => {
         checkCount++;
 
         if (checkCount > maxChecks) {
-          // Timeout - clean up and resolve
-          try {
-            if (fs.existsSync(markerFile)) fs.unlinkSync(markerFile);
-            if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
-          } catch {
-            // ignore cleanup errors
-          }
+          this.cleanupTempFiles(markerFile, outputFile);
           vscode.window.showWarningMessage(
-            "Deployment timed out (6 minutes). Check the terminal for progress.",
+            "Deployment timed out after 6 minutes. Check the terminal for progress.",
           );
           resolve();
           return;
         }
 
-        try {
-          // Check if marker file exists
-          if (fs.existsSync(markerFile)) {
-            const marker = fs.readFileSync(markerFile, "utf-8").trim();
-            const output = fs.existsSync(outputFile)
-              ? fs.readFileSync(outputFile, "utf-8")
-              : "";
-
-            // Determine what to display
-            if (marker === "SUCCESS") {
-              const programId = this.extractProgramId(output);
-              await this.showDeploySuccessNotification(programId);
-            } else if (marker === "FAILED") {
-              if (output.includes("BUILD_FAILED")) {
-                await this.showBuildFailedNotification();
-              } else {
-                await this.showDeployFailedNotification();
-              }
-            }
-
-            // Check for airdrop failure in output even if deployment continued
-            if (output.includes(MARKERS.AIRDROP_FAILED)) {
-              await this.showAirdropFailedNotification();
-            }
-
-            // Clean up temp files
-            try {
-              if (fs.existsSync(markerFile)) fs.unlinkSync(markerFile);
-              if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
-            } catch {
-              // ignore cleanup errors
-            }
-
-            resolve();
-            return;
-          }
-        } catch (err) {
-          // Ignore file system errors and continue checking
+        if (!fs.existsSync(markerFile)) {
+          setTimeout(checkCompletion, 1000);
+          return;
         }
 
-        // Schedule next check
-        setTimeout(checkCompletion, 1000);
+        const marker = fs.readFileSync(markerFile, "utf8").trim();
+        const output = fs.existsSync(outputFile)
+          ? fs.readFileSync(outputFile, "utf8")
+          : "";
+
+        if (marker === "SUCCESS") {
+          const programId = this.extractProgramId(output);
+          await this.showDeploySuccessNotification(programId);
+        } else if (marker === MARKERS.buildFailed) {
+          await this.showBuildFailedNotification();
+        } else if (marker === "FAILED") {
+          await this.showDeployFailedNotification();
+        }
+
+        if (output.includes(MARKERS.airdropFailed)) {
+          await this.showAirdropFailedNotification();
+        }
+
+        this.cleanupTempFiles(markerFile, outputFile);
+        resolve();
       };
 
-      // Start checking
-      checkCompletion();
+      void checkCompletion();
     });
   }
 
-  /**
-   * Extract Program ID from anchor deploy output using regex.
-   */
+  private cleanupTempFiles(markerFile: string, outputFile: string): void {
+    try {
+      if (fs.existsSync(markerFile)) {
+        fs.unlinkSync(markerFile);
+      }
+      if (fs.existsSync(outputFile)) {
+        fs.unlinkSync(outputFile);
+      }
+    } catch {
+      // Ignore cleanup failures.
+    }
+  }
+
   private extractProgramId(output: string): string | null {
     const match = output.match(/Program\s+Id:\s+([1-9A-HJ-NP-Za-km-z]{32,44})/);
     return match ? match[1] : null;
   }
 
-  /**
-   * Show notification when airdrop fails.
-   */
   private async showAirdropFailedNotification(): Promise<void> {
     const action = await vscode.window.showWarningMessage(
-      "⚠️ Airdrop failed. Your devnet wallet may not be funded or the faucet may be rate-limited.",
+      "Airdrop failed. Your devnet wallet may not be funded or the faucet may be rate-limited.",
       "Open Faucet",
       "OK",
     );
@@ -234,62 +404,87 @@ fi
     }
   }
 
-  /**
-   * Show notification when build fails.
-   */
   private async showBuildFailedNotification(): Promise<void> {
     await vscode.window.showErrorMessage(
-      "❌ Build failed. Check the terminal for details. You can copy the error and ask SolanaPilot Chat for help.",
+      "Build failed. Check the terminal for details, then ask SolanaPilot Chat to help debug the output.",
     );
   }
 
-  /**
-   * Show notification when deployment fails.
-   */
   private async showDeployFailedNotification(): Promise<void> {
     await vscode.window.showErrorMessage(
-      "❌ Deployment to devnet failed. Check the terminal above.",
+      "Deployment to devnet failed. Check the terminal for details.",
     );
   }
 
-  /**
-   * Show notification when deployment succeeds.
-   */
   private async showDeploySuccessNotification(
     programId: string | null,
   ): Promise<void> {
     if (!programId) {
       await vscode.window.showInformationMessage(
-        "✅ Deployment completed, but Program ID could not be parsed. Check the terminal output above.",
+        "Deployment completed, but the Program ID could not be parsed from terminal output.",
       );
       return;
     }
 
     const action = await vscode.window.showInformationMessage(
-      `✅ Deployed! Program ID: ${programId}`,
+      `Deployed successfully. Program ID: ${programId}`,
       "View on Explorer",
     );
 
     if (action === "View on Explorer") {
-      const explorerUrl = `https://explorer.solana.com/address/${programId}?cluster=devnet`;
-      await vscode.env.openExternal(vscode.Uri.parse(explorerUrl));
+      await vscode.env.openExternal(
+        vscode.Uri.parse(
+          `https://explorer.solana.com/address/${programId}?cluster=devnet`,
+        ),
+      );
     }
   }
 
   public runCommands(commands: string[], workspaceRoot: string): void {
     const terminal = this.getOrCreateTerminal();
     terminal.show(true);
-    terminal.sendText(`cd "${workspaceRoot}"`);
+    terminal.sendText(this.buildChangeDirectoryCommand(workspaceRoot));
 
     for (const command of commands) {
       terminal.sendText(command);
     }
   }
 
-  public runFrontendSetup(workspaceRoot: string): void {
-    const terminal = this.getOrCreateTerminal();
-    terminal.show(true);
-    terminal.sendText(`cd "${workspaceRoot}"`);
-    terminal.sendText("cd app && npm install && npm run dev");
+  public async runFrontendSetup(workspaceRoot: string): Promise<void> {
+    const appRoot = path.join(workspaceRoot, "app");
+    const outputChannel = vscode.window.createOutputChannel("SolanaPilot Frontend");
+    outputChannel.show(true);
+    this.appendOutputChannelLine(outputChannel, "SolanaPilot frontend setup starting...");
+
+    if (!fs.existsSync(appRoot)) {
+      vscode.window.showErrorMessage(
+        "The generated frontend folder was not found. Generate the frontend first.",
+      );
+      return;
+    }
+
+    this.appendOutputChannelLine(outputChannel, "Installing dependencies with npm install...");
+    const installCode = await this.runCommandInFolder(
+      this.getNpmCommand(),
+      ["install"],
+      appRoot,
+      outputChannel,
+    );
+
+    if (installCode !== 0) {
+      vscode.window.showErrorMessage(
+        "npm install failed. Check the SolanaPilot Frontend output for details.",
+      );
+      return;
+    }
+
+    this.appendOutputChannelLine(outputChannel, "Starting Vite dev server...");
+    const detectedPort = await this.launchFrontendDevServer(appRoot, outputChannel);
+
+    if (!detectedPort) {
+      vscode.window.showWarningMessage(
+        "Frontend server started, but the active Vite port could not be detected automatically.",
+      );
+    }
   }
 }

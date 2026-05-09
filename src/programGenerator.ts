@@ -1,3 +1,4 @@
+import * as path from "path";
 import * as vscode from "vscode";
 import { callAI } from "./aiClient";
 import {
@@ -9,10 +10,102 @@ import { PROGRAM_GENERATION_PROMPT } from "./systemPrompt";
 import { TerminalRunner } from "./terminalRunner";
 
 interface ProgramGenerationResponse {
+  type: "full_program";
   files: WorkspaceFile[];
   programName: string;
   description: string;
   instructions: string[];
+  accounts: string[];
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isSnakeCaseName(value: string): boolean {
+  return /^[a-z][a-z0-9_]*$/.test(value);
+}
+
+function validateProgramGenerationResponse(
+  parsed: unknown,
+): ProgramGenerationResponse {
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("AI response must be a JSON object.");
+  }
+
+  const response = parsed as Record<string, unknown>;
+
+  if (response.type !== "full_program") {
+    throw new Error('AI response must include "type": "full_program".');
+  }
+
+  if (!isNonEmptyString(response.programName)) {
+    throw new Error("AI response missing programName.");
+  }
+
+  if (!isSnakeCaseName(response.programName)) {
+    throw new Error(
+      "AI response programName must be snake_case and start with a letter.",
+    );
+  }
+
+  if (!isNonEmptyString(response.description)) {
+    throw new Error("AI response missing description.");
+  }
+
+  if (!Array.isArray(response.instructions)) {
+    throw new Error("AI response missing instructions array.");
+  }
+
+  if (!Array.isArray(response.accounts)) {
+    throw new Error("AI response missing accounts array.");
+  }
+
+  if (!Array.isArray(response.files) || response.files.length === 0) {
+    throw new Error("AI response missing files array.");
+  }
+
+  const validatedFiles: WorkspaceFile[] = [];
+  for (const file of response.files) {
+    if (!file || typeof file !== "object") {
+      throw new Error("AI response contains invalid file entries.");
+    }
+
+    const fileRecord = file as Record<string, unknown>;
+    if (!isNonEmptyString(fileRecord.path)) {
+      throw new Error("AI response contains a file with an invalid path.");
+    }
+    if (typeof fileRecord.content !== "string") {
+      throw new Error(
+        `AI response file ${fileRecord.path} is missing string content.`,
+      );
+    }
+
+    if (path.isAbsolute(fileRecord.path)) {
+      throw new Error(`Refusing to write absolute path: ${fileRecord.path}`);
+    }
+
+    const normalized = path.normalize(fileRecord.path);
+    if (normalized.split(path.sep).includes("..")) {
+      throw new Error(
+        `Refusing to write path traversal path: ${fileRecord.path}`,
+      );
+    }
+
+    validatedFiles.push({
+      path: fileRecord.path,
+      content: fileRecord.content,
+    });
+  }
+
+  return {
+    type: "full_program",
+    files: validatedFiles,
+    programName: response.programName,
+    description: response.description,
+    instructions: response.instructions.filter(isNonEmptyString),
+    accounts: response.accounts.filter(isNonEmptyString),
+  };
 }
 
 function buildProgramPrompt(description: string, programName: string): string {
@@ -108,9 +201,9 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
   cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
 
   // Try to parse JSON, with improved error handling
-  let parsed: Partial<ProgramGenerationResponse>;
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(cleaned) as Partial<ProgramGenerationResponse>;
+    parsed = JSON.parse(cleaned) as unknown;
   } catch (parseError) {
     // If parsing fails, try to fix common issues with unescaped newlines
     // This is a workaround for AI models returning JSON with actual newlines in strings
@@ -128,7 +221,7 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
         },
       );
 
-      parsed = JSON.parse(fixed) as Partial<ProgramGenerationResponse>;
+      parsed = JSON.parse(fixed) as unknown;
     } catch (fixError) {
       // Last resort: show helpful error with context
       const errorContext = cleaned.substring(
@@ -141,36 +234,7 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
     }
   }
 
-  if (!parsed.files || !Array.isArray(parsed.files)) {
-    throw new Error("AI response missing files array");
-  }
-  if (parsed.files.length === 0) {
-    throw new Error("AI returned empty files array");
-  }
-  if (
-    parsed.files.some(
-      (file) =>
-        !file ||
-        typeof file.path !== "string" ||
-        file.path.trim().length === 0 ||
-        typeof file.content !== "string",
-    )
-  ) {
-    throw new Error("AI response contains invalid file entries");
-  }
-
-  return {
-    files: parsed.files,
-    programName:
-      typeof parsed.programName === "string" ? parsed.programName : "",
-    description:
-      typeof parsed.description === "string" ? parsed.description : "",
-    instructions: Array.isArray(parsed.instructions)
-      ? parsed.instructions.filter(
-          (item): item is string => typeof item === "string",
-        )
-      : [],
-  };
+  return validateProgramGenerationResponse(parsed);
 }
 
 async function callAIWithSingleRetry(

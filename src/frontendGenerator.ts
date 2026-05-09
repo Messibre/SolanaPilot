@@ -2,19 +2,84 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { callAI } from "./aiClient";
-import { getWorkspaceRoot } from "./fileWriter";
+import { writeFilesToWorkspace } from "./fileWriter";
 import { FRONTEND_PROMPT } from "./systemPrompt";
 import { TerminalRunner } from "./terminalRunner";
 
 interface FrontendGenerationResponse {
-  type?: string;
+  type: "frontend";
   files?: Array<{ path: string; content: string }>;
   startCommand?: string;
 }
 
-/**
- * Find the Anchor IDL JSON file in target/idl/.
- */
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateFrontendGenerationResponse(
+  parsed: unknown,
+): FrontendGenerationResponse {
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("AI response must be a JSON object.");
+  }
+
+  const response = parsed as Record<string, unknown>;
+
+  if (response.type !== "frontend") {
+    throw new Error('AI response must include "type": "frontend".');
+  }
+
+  if (!Array.isArray(response.files) || response.files.length === 0) {
+    throw new Error("AI response missing files array.");
+  }
+
+  const files = response.files.map((file) => {
+    if (!file || typeof file !== "object") {
+      throw new Error("AI response contains invalid file entries.");
+    }
+
+    const fileRecord = file as Record<string, unknown>;
+    if (!isNonEmptyString(fileRecord.path)) {
+      throw new Error("AI response contains a file with an invalid path.");
+    }
+
+    if (typeof fileRecord.content !== "string") {
+      throw new Error(
+        `File content for ${fileRecord.path} is not a string.`,
+      );
+    }
+
+    if (path.isAbsolute(fileRecord.path)) {
+      throw new Error(`Refusing to write absolute path: ${fileRecord.path}`);
+    }
+
+    const normalized = path.normalize(fileRecord.path);
+    if (normalized.split(path.sep).includes("..")) {
+      throw new Error(
+        `Refusing to write path traversal path: ${fileRecord.path}`,
+      );
+    }
+
+    if (Buffer.byteLength(fileRecord.content, "utf-8") > 1_000_000) {
+      throw new Error(
+        `File too large: ${fileRecord.path} exceeds 1000000 bytes`,
+      );
+    }
+
+    return {
+      path: fileRecord.path,
+      content: fileRecord.content,
+    };
+  });
+
+  return {
+    type: "frontend",
+    files,
+    startCommand:
+      isNonEmptyString(response.startCommand) ? response.startCommand : undefined,
+  };
+}
+
 async function findIDLFile(workspaceRoot: string): Promise<string | null> {
   try {
     const idlDir = path.join(workspaceRoot, "target", "idl");
@@ -24,13 +89,12 @@ async function findIDLFile(workspaceRoot: string): Promise<string | null> {
     }
 
     const files = fs.readdirSync(idlDir);
-    let idlFile = files
-      .filter((f) => f.endsWith(".json") && !f.endsWith("_test.json"))
+    const idlFile = files
+      .filter((file) => file.endsWith(".json") && !file.endsWith("_test.json"))
       .sort((a, b) => {
-        // Prefer smaller files (usually more recent)
         const statA = fs.statSync(path.join(idlDir, a));
         const statB = fs.statSync(path.join(idlDir, b));
-        return statA.size - statB.size;
+        return statB.mtimeMs - statA.mtimeMs;
       })[0];
 
     return idlFile ? path.join(idlDir, idlFile) : null;
@@ -39,9 +103,6 @@ async function findIDLFile(workspaceRoot: string): Promise<string | null> {
   }
 }
 
-/**
- * Extract Program ID from Anchor.toml.
- */
 async function extractProgramID(workspaceRoot: string): Promise<string | null> {
   try {
     const anchorToml = path.join(workspaceRoot, "Anchor.toml");
@@ -51,28 +112,33 @@ async function extractProgramID(workspaceRoot: string): Promise<string | null> {
     }
 
     const content = fs.readFileSync(anchorToml, "utf-8");
+    const lines = content.split(/\r?\n/);
+    let inDevnetSection = false;
 
-    // Simple regex to extract [programs.devnet] program ID
-    const match = content.match(
-      /\[programs\.devnet\]\s*\n\s*([a-zA-Z0-9]+)\s*=\s*"([a-zA-Z0-9]+)"/,
-    );
-    if (match) {
-      return match[2];
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        inDevnetSection = trimmed === "[programs.devnet]";
+        continue;
+      }
+
+      if (!inDevnetSection || trimmed.length === 0 || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      const match = trimmed.match(/^[A-Za-z0-9_]+\s*=\s*"([1-9A-HJ-NP-Za-km-z]{32,44})"$/);
+      if (match) {
+        return match[1];
+      }
     }
 
-    // Fallback: look for any program ID line
-    const idMatch = content.match(
-      /^[a-zA-Z0-9_]+\s*=\s*"([a-zA-Z0-9]{32,44})"/m,
-    );
-    return idMatch ? idMatch[1] : null;
+    return null;
   } catch {
     return null;
   }
 }
 
-/**
- * Parse AI response for frontend generation.
- */
 function parseFrontendResponse(raw: string): FrontendGenerationResponse {
   let cleaned = raw.trim();
 
@@ -93,122 +159,72 @@ function parseFrontendResponse(raw: string): FrontendGenerationResponse {
     throw new Error("AI response does not contain valid JSON.");
   }
 
-  let slice = cleaned.slice(jsonStart, jsonEnd + 1);
+  const slice = cleaned.slice(jsonStart, jsonEnd + 1);
 
-  let parsed: FrontendGenerationResponse;
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(slice) as FrontendGenerationResponse;
-  } catch (err) {
-    // Try to repair unescaped newlines in content
-    try {
-      const repaired = slice.replace(
-        /"content"\s*:\s*"([\s\S]*?)"/g,
-        (match) => {
-          return match
-            .replace(/\n/g, "\\n")
-            .replace(/\r/g, "\\r")
-            .replace(/\t/g, "\\t");
-        },
-      );
-      parsed = JSON.parse(repaired) as FrontendGenerationResponse;
-    } catch (err2) {
-      throw new Error(
-        "AI response JSON is malformed and could not be repaired.",
-      );
-    }
+    parsed = JSON.parse(slice) as unknown;
+  } catch {
+    throw new Error("AI response JSON is malformed.");
   }
 
-  if (!parsed.files || !Array.isArray(parsed.files)) {
-    throw new Error("AI response missing files array.");
-  }
-
-  if (parsed.files.length === 0) {
-    throw new Error("AI returned empty files array.");
-  }
-
-  for (const file of parsed.files) {
-    if (
-      !file ||
-      typeof file.path !== "string" ||
-      file.path.trim().length === 0
-    ) {
-      throw new Error("AI response contains invalid file entries.");
-    }
-
-    if (typeof file.content !== "string") {
-      throw new Error(`File content for ${file.path} is not a string.`);
-    }
-
-    // Sanitize paths
-    if (path.isAbsolute(file.path)) {
-      throw new Error(`Refusing to write absolute path: ${file.path}`);
-    }
-
-    const normalized = path.normalize(file.path);
-    if (normalized.split(path.sep).includes("..")) {
-      throw new Error(
-        `Refusing to write file with path traversal: ${file.path}`,
-      );
-    }
-  }
-
-  return parsed;
+  return validateFrontendGenerationResponse(parsed);
 }
 
-/**
- * Build the AI prompt for frontend generation.
- */
 function buildFrontendPrompt(idlJson: unknown, programId: string): string {
-  const idlStr = JSON.stringify(idlJson, null, 2);
-
-  return `${FRONTEND_PROMPT}
-
-PROGRAM_ID: ${programId}
-
-IDL_JSON:
-\`\`\`json
-${idlStr}
-\`\`\`
-
-Now generate the complete React frontend for this program.`;
+  return FRONTEND_PROMPT.replace(
+    "{IDL}",
+    JSON.stringify(idlJson, null, 2),
+  ).replace("{PROGRAM_ID}", programId);
 }
 
-/**
- * Generate and write frontend files to workspace.
- */
+async function callFrontendAIWithRetry(
+  prompt: string,
+): Promise<FrontendGenerationResponse> {
+  try {
+    const rawResponse = await callAI(prompt, "", true);
+    return parseFrontendResponse(rawResponse);
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      "Failed to parse frontend response. Retrying once...",
+    );
+    const retryPrompt = `${prompt}
+
+Your previous response was not valid JSON.
+Return ONLY the JSON object with no other text.`;
+    const retryResponse = await callAI(retryPrompt, "", true);
+    return parseFrontendResponse(retryResponse);
+  }
+}
+
 export async function generateFrontend(workspaceRoot: string): Promise<void> {
   try {
-    // Step 1: Find IDL file
     const idlFilePath = await findIDLFile(workspaceRoot);
     if (!idlFilePath) {
       void vscode.window.showErrorMessage(
-        "❌ No Anchor IDL found. Build your program first: run `anchor build`",
+        "No Anchor IDL found. Build your program first with `anchor build`.",
       );
       return;
     }
 
-    // Step 2: Read and parse IDL
     let idlJson: unknown;
     try {
-      const idlContent = fs.readFileSync(idlFilePath, "utf-8");
-      idlJson = JSON.parse(idlContent);
-    } catch (err) {
+      idlJson = JSON.parse(fs.readFileSync(idlFilePath, "utf-8"));
+    } catch {
       void vscode.window.showErrorMessage(
-        "❌ Failed to parse IDL file. Ensure `anchor build` completed successfully.",
+        "Failed to parse the IDL file. Make sure `anchor build` completed successfully.",
       );
       return;
     }
 
-    // Step 3: Extract Program ID
     let programId = await extractProgramID(workspaceRoot);
     if (!programId) {
       const input = await vscode.window.showInputBox({
-        prompt:
-          "📌 Enter the Program ID (from Anchor.toml or deployed program)",
-        placeHolder: "e.g., 11111111111111111111111111111111",
+        prompt: "Enter the Program ID for this Anchor app",
+        placeHolder: "e.g. 11111111111111111111111111111111",
         ignoreFocusOut: true,
-        validateInput: (val) =>
-          val.trim().length >= 32
+        validateInput: (value) =>
+          value.trim().length >= 32
             ? undefined
             : "Program ID must be at least 32 characters.",
       });
@@ -220,49 +236,43 @@ export async function generateFrontend(workspaceRoot: string): Promise<void> {
       programId = input.trim();
     }
 
-    // Step 4: Call AI to generate frontend
     let generated: FrontendGenerationResponse | undefined;
 
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "⚡ SolanaPilot: Generating React frontend...",
+        title: "SolanaPilot: Generating React frontend...",
         cancellable: false,
       },
       async (progress) => {
-        progress.report({
-          message: "Crafting React app with Anchor client...",
-        });
-
+        progress.report({ message: "Generating frontend files..." });
         const fullPrompt = buildFrontendPrompt(idlJson, programId!);
-        const rawResponse = await callAI(fullPrompt, "", true);
+        generated = await callFrontendAIWithRetry(fullPrompt);
 
-        progress.report({ message: "Parsing generated code..." });
-        generated = parseFrontendResponse(rawResponse);
-
-        if (!generated) {
-          throw new Error("No response from AI");
+        if (!generated?.files?.length) {
+          throw new Error("No frontend files were generated.");
         }
 
-        progress.report({ message: "Writing files to workspace..." });
-        writeGeneratedFiles(workspaceRoot, generated.files!);
+        progress.report({ message: "Writing frontend files..." });
+        const wrote = await writeFilesToWorkspace(generated.files);
+        if (!wrote) {
+          throw new Error("Failed to write generated frontend files.");
+        }
       },
     );
 
-    if (!generated) {
+    if (!generated?.files?.length) {
       return;
     }
 
-    // Step 5: Offer to start dev server
     const choice = await vscode.window.showInformationMessage(
-      "✅ Frontend generated! Ready to start the dev server?",
-      { modal: false },
+      "Frontend generated. Start the dev server now?",
       "Start Now",
       "Later",
     );
 
     if (choice === "Start Now") {
-      startDevServer(workspaceRoot);
+      await startDevServer(workspaceRoot);
     }
   } catch (error) {
     const message =
@@ -270,117 +280,12 @@ export async function generateFrontend(workspaceRoot: string): Promise<void> {
         ? error.message
         : "Unknown frontend generation error";
     void vscode.window.showErrorMessage(
-      `❌ Frontend generation failed: ${message}`,
+      `Frontend generation failed: ${message}`,
     );
   }
 }
 
-/**
- * Write generated files to workspace.
- */
-function writeGeneratedFiles(
-  workspaceRoot: string,
-  files: Array<{ path: string; content: string }>,
-): void {
-  const MAX_FILE_BYTES = 1_000_000; // 1 MB for frontend files
-
-  for (const file of files) {
-    // Validate size
-    if (Buffer.byteLength(file.content, "utf-8") > MAX_FILE_BYTES) {
-      throw new Error(
-        `File too large: ${file.path} exceeds ${MAX_FILE_BYTES} bytes`,
-      );
-    }
-
-    const normalized = path.normalize(file.path);
-    const fullPath = path.resolve(workspaceRoot, normalized);
-
-    // Ensure path is within workspace
-    if (!fullPath.startsWith(path.resolve(workspaceRoot))) {
-      throw new Error(`Refusing to write outside workspace: ${file.path}`);
-    }
-
-    // Create directories recursively
-    const dir = path.dirname(fullPath);
-    fs.mkdirSync(dir, { recursive: true });
-
-    // Write file
-    fs.writeFileSync(fullPath, file.content, "utf-8");
-    console.log("[SolanaPilot] Wrote:", file.path);
-  }
-
-  // Open App.tsx in editor
-  try {
-    const appTsxPath = path.join(workspaceRoot, "app", "src", "App.tsx");
-    if (fs.existsSync(appTsxPath)) {
-      void openFileInEditor(appTsxPath);
-    }
-  } catch {
-    // Non-fatal
-  }
-}
-
-/**
- * Open a file in the editor.
- */
-async function openFileInEditor(absolutePath: string): Promise<void> {
-  try {
-    const doc = await vscode.workspace.openTextDocument(
-      vscode.Uri.file(absolutePath),
-    );
-    await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
-  } catch {
-    // Non-fatal
-  }
-}
-
-/**
- * Start the Vite dev server and open browser.
- * Handles port conflicts gracefully with helpful messages.
- */
-function startDevServer(workspaceRoot: string): void {
-  const terminal = vscode.window.createTerminal({
-    name: "🖥️ Solana dApp",
-    iconPath: new vscode.ThemeIcon("globe"),
-    message: "Solana React dApp Dev Server",
-  });
-
-  terminal.show(true);
-
-  // Run npm install and dev
-  const escapedRoot = workspaceRoot.replace(/"/g, '\\"');
-  const script = `
-cd "${escapedRoot}/app" 2>&1
-echo "📦 Installing dependencies..."
-npm install
-if [ $? -eq 0 ]; then
-  echo ""
-  echo "🚀 Starting dev server..."
-  echo "ℹ️  If port 5173 is already in use, Vite will automatically try the next port (5174, 5175, etc)"
-  echo ""
-  npm run dev 2>&1 | tee dev-server.log
-  if grep -q "EADDRINUSE" dev-server.log 2>/dev/null; then
-    echo ""
-    echo "⚠️  Port 5173 is already in use. Check the output above for the actual port being used."
-    echo "💡 Tip: Close any other dev servers or use 'lsof -i :5173' to find the process."
-  fi
-else
-  echo "❌ npm install failed. Check the error above."
-  echo "💡 Try running 'npm install' manually in the app/ directory."
-fi
-`;
-
-  terminal.sendText(script);
-
-  // Open browser after 4 seconds (Vite needs time to start)
-  // This will try localhost:5173, which may redirect if that port is in use
-  setTimeout(() => {
-    void vscode.env.openExternal(vscode.Uri.parse("http://localhost:5173"));
-  }, 4000);
-
-  // Show helpful info message
-  vscode.window.showInformationMessage(
-    "🚀 Dev server starting... Opening browser at localhost:5173 (check terminal if port conflict occurs)",
-    "View Log",
-  );
+async function startDevServer(workspaceRoot: string): Promise<void> {
+  const runner = TerminalRunner.getInstance();
+  await runner.runFrontendSetup(workspaceRoot);
 }

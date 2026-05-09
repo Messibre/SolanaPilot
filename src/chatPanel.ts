@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 import { callAI } from "./aiClient";
@@ -276,6 +277,22 @@ export class ChatPanel {
         throw new Error("Agent mode did not return any files to write.");
       }
 
+      const confirmed = await this.previewWorkspaceChanges(workspaceRoot, parsed.files);
+      if (!confirmed) {
+        const cancelled = "Agent mode preview cancelled before writing any files.";
+        this.pushConversationEntry({
+          role: "assistant",
+          content: cancelled,
+          mode: "agent",
+        });
+        this.sendToWebview({
+          type: "response",
+          text: cancelled,
+          mode: "agent",
+        });
+        return;
+      }
+
       const writeSucceeded = await writeFilesToWorkspace(parsed.files);
       if (!writeSucceeded) {
         throw new Error("SolanaPilot could not write the requested files.");
@@ -490,9 +507,9 @@ export class ChatPanel {
 
     let slice = cleaned.slice(jsonStart, jsonEnd + 1);
 
-    let parsed: WorkspaceUpdateResponse;
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(slice) as WorkspaceUpdateResponse;
+      parsed = JSON.parse(slice) as unknown;
     } catch (err) {
       // Try to repair common issue: AI included raw newlines in file content strings.
       try {
@@ -506,7 +523,7 @@ export class ChatPanel {
           },
         );
 
-        parsed = JSON.parse(repaired) as WorkspaceUpdateResponse;
+        parsed = JSON.parse(repaired) as unknown;
       } catch (err2) {
         throw new Error(
           "Agent mode returned malformed JSON and automatic repair failed.",
@@ -514,14 +531,25 @@ export class ChatPanel {
       }
     }
 
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("Agent mode response must be a JSON object.");
+    }
+
+    const response = parsed as Record<string, unknown>;
+
+    if (response.type !== "workspace_update") {
+      throw new Error('Agent mode response must include "type": "workspace_update".');
+    }
+
     // Basic validation
-    if (!Array.isArray(parsed.files)) {
+    if (!Array.isArray(response.files)) {
       throw new Error("Agent mode response is missing a files array.");
     }
 
     const MAX_FILE_BYTES = 500_000;
 
-    for (const file of parsed.files) {
+    const validatedFiles: WorkspaceFile[] = [];
+    for (const file of response.files) {
       if (
         !file ||
         typeof file.path !== "string" ||
@@ -550,17 +578,97 @@ export class ChatPanel {
           `File too large: ${file.path} exceeds ${MAX_FILE_BYTES} bytes`,
         );
       }
+
+      validatedFiles.push({
+        path: file.path,
+        content: file.content,
+      });
     }
 
-    if (parsed.openFile && typeof parsed.openFile !== "string") {
+    if (response.openFile && typeof response.openFile !== "string") {
       throw new Error("Agent mode returned an invalid openFile value.");
     }
 
-    if (parsed.notes && !Array.isArray(parsed.notes)) {
+    if (response.notes && !Array.isArray(response.notes)) {
       throw new Error("Agent mode returned invalid notes.");
     }
 
-    return parsed;
+    return {
+      type: "workspace_update",
+      summary: typeof response.summary === "string" ? response.summary : undefined,
+      files: validatedFiles,
+      notes: Array.isArray(response.notes)
+        ? response.notes.filter((item): item is string => typeof item === "string")
+        : undefined,
+      openFile: typeof response.openFile === "string" ? response.openFile : undefined,
+    };
+  }
+
+  private async previewWorkspaceChanges(
+    workspaceRoot: string,
+    files: WorkspaceFile[],
+  ): Promise<boolean> {
+    const previewChoice = await vscode.window.showInformationMessage(
+      `Agent mode prepared ${files.length} file change(s). Preview the diff before writing?`,
+      "Preview Diff",
+      "Write Files",
+      "Cancel",
+    );
+
+    if (previewChoice === "Cancel" || !previewChoice) {
+      return false;
+    }
+
+    if (previewChoice === "Preview Diff") {
+      const previewDir = fs.mkdtempSync(path.join(os.tmpdir(), "solanapilot-preview-"));
+      const maxPreviewFiles = Math.min(files.length, 5);
+
+      try {
+        for (let index = 0; index < maxPreviewFiles; index++) {
+          const file = files[index];
+          const originalPath = path.resolve(workspaceRoot, path.normalize(file.path));
+          const originalContent = fs.existsSync(originalPath)
+            ? fs.readFileSync(originalPath, "utf8")
+            : "";
+
+          const safePreviewName = file.path.replace(/[\\/:*?"<>|]/g, "_");
+          const originalPreviewPath = path.join(previewDir, `${index}-original-${safePreviewName}`);
+          const updatedPreviewPath = path.join(previewDir, `${index}-updated-${safePreviewName}`);
+
+          fs.writeFileSync(originalPreviewPath, originalContent, "utf8");
+          fs.writeFileSync(updatedPreviewPath, file.content, "utf8");
+
+          await vscode.commands.executeCommand(
+            "vscode.diff",
+            vscode.Uri.file(originalPreviewPath),
+            vscode.Uri.file(updatedPreviewPath),
+            `SolanaPilot preview: ${file.path}`,
+          );
+        }
+
+        if (files.length > maxPreviewFiles) {
+          void vscode.window.showInformationMessage(
+            `Previewed the first ${maxPreviewFiles} file(s). ${files.length - maxPreviewFiles} additional file(s) will be written if you confirm.`,
+          );
+        }
+      } finally {
+        setTimeout(() => {
+          try {
+            fs.rmSync(previewDir, { recursive: true, force: true });
+          } catch {
+            // Ignore preview cleanup failures.
+          }
+        }, 10_000);
+      }
+    }
+
+    const finalChoice = await vscode.window.showInformationMessage(
+      "Write the reviewed Agent changes to the workspace now?",
+      "Write Files",
+      "Cancel",
+    );
+
+    return finalChoice === "Write Files";
   }
 
   private pushConversationEntry(entry: ConversationEntry): void {

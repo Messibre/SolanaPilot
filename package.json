@@ -1,16 +1,36 @@
 {
   "name": "solana-copilot",
-  "displayName": "SolanaPilot",
-  "description": "AI-powered Solana blockchain development copilot",
+  "displayName": "SolanaPilot — AI Copilot for Solana Development",
+  "description": "AI-powered Solana smart contract generator with devnet deployment and React frontend scaffolding.",
   "version": "1.0.0",
   "publisher": "solana-copilot",
+  "license": "MIT",
+  "keywords": [
+    "solana",
+    "blockchain",
+    "web3",
+    "anchor",
+    "smart-contract",
+    "ai",
+    "copilot"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solana-copilot/solanapilot"
+  },
+  "bugs": {
+    "url": "https://github.com/solana-copilot/solanapilot/issues"
+  },
+  "galleryBanner": {
+    "color": "#9945FF",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.84.0"
   },
   "categories": [
-    "AI",
     "Programming Languages",
-    "Debuggers"
+    "Other"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -26,44 +46,46 @@
       {
         "command": "solanaCopilot.openChat",
         "title": "Open Chat",
-        "category": "Solana Copilot",
+        "category": "SolanaPilot",
         "icon": "$(comment-discussion)"
       },
       {
         "command": "solanaCopilot.setApiKey",
         "title": "Set Gemini API Key",
-        "category": "Solana Copilot"
+        "category": "SolanaPilot"
       },
       {
         "command": "solanaCopilot.generateProgram",
         "title": "Generate Smart Contract",
-        "category": "Solana Copilot",
+        "category": "SolanaPilot",
         "icon": "$(sparkle)"
       },
       {
         "command": "solanaCopilot.deployToDevnet",
         "title": "Deploy to Devnet",
-        "category": "Solana Copilot",
+        "category": "SolanaPilot",
         "icon": "$(rocket)"
       },
       {
         "command": "solanaCopilot.generateFrontend",
         "title": "Generate React Frontend",
-        "category": "Solana Copilot",
+        "category": "SolanaPilot",
         "icon": "$(browser)"
       },
       {
         "command": "solanaCopilot.explainCode",
-        "title": "Solana Copilot: Explain This Code"
+        "title": "Explain This Code",
+        "category": "SolanaPilot"
       },
       {
         "command": "solanaCopilot.fixCode",
-        "title": "Solana Copilot: Fix Solana Issue"
+        "title": "Fix Solana Issue",
+        "category": "SolanaPilot"
       },
       {
         "command": "solanaCopilot.insertCode",
         "title": "Insert Code at Cursor",
-        "category": "Solana Copilot"
+        "category": "SolanaPilot"
       }
     ],
     "keybindings": [
@@ -126,6 +148,7 @@
     "eslint": "^8.51.0",
     "typescript": "^5.2.2"
   },
+  "icon": "assets/icon.png",
   "dependencies": {
     "@google/generative-ai": "^0.3.0"
   }
