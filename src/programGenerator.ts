@@ -34,8 +34,15 @@ REQUIREMENTS:
 ANCHOR VERSION: 0.30.0
 SOLANA VERSION: 1.18.0
 
-OUTPUT FORMAT: Return ONLY a valid JSON object. No markdown, no backticks,
-no explanation before or after. The JSON must match this exact schema:
+CRITICAL JSON FORMATTING INSTRUCTIONS:
+1. Return ONLY a single valid JSON object, no markdown wrappers, no backticks
+2. IMPORTANT: All newlines in code must be represented as \\n (escaped)
+3. All quotes in code must be represented as \\" (escaped)
+4. All backslashes must be represented as \\\\ (escaped)
+5. The JSON must be valid per JSON spec and parseable by JSON.parse()
+6. Do NOT include "const", "let", "export" or any explanation text before or after the JSON
+
+OUTPUT FORMAT: Return ONLY the JSON object matching this exact schema:
 
 {
   "type": "full_program",
@@ -44,36 +51,38 @@ no explanation before or after. The JSON must match this exact schema:
   "files": [
     {
       "path": "programs/${programName}/src/lib.rs",
-      "content": "complete rust file content here"
+      "content": "complete rust file content here WITH ALL NEWLINES ESCAPED AS \\\\n"
     },
     {
       "path": "programs/${programName}/Cargo.toml",
-      "content": "complete Cargo.toml content"
+      "content": "complete Cargo.toml content WITH ALL NEWLINES ESCAPED AS \\\\n"
     },
     {
       "path": "Anchor.toml",
-      "content": "complete Anchor.toml configured for devnet"
+      "content": "complete Anchor.toml configured for devnet WITH ALL NEWLINES ESCAPED AS \\\\n"
     },
     {
       "path": "Cargo.toml",
-      "content": "workspace Cargo.toml content"
+      "content": "workspace Cargo.toml content WITH ALL NEWLINES ESCAPED AS \\\\n"
     },
     {
       "path": "tests/${programName}.ts",
-      "content": "basic anchor test file"
+      "content": "basic anchor test file WITH ALL NEWLINES ESCAPED AS \\\\n"
     }
   ],
   "instructions": ["list", "of", "instruction", "names"],
   "accounts": ["list", "of", "account", "struct", "names"]
 }
 
-CRITICAL: The JSON must be parseable by JSON.parse(). Escape all special
-characters in file contents. Use \\n for newlines inside JSON strings.
+REMEMBER: Every single file content must have \\n instead of actual newlines.
+If you include actual newlines instead of \\n, the JSON will be invalid.
 `
 }
 
 function parseAIResponse(raw: string): ProgramGenerationResponse {
   let cleaned = raw.trim()
+  
+  // Strip markdown code fences
   if (cleaned.startsWith('```json')) {
     cleaned = cleaned.slice(7)
   }
@@ -85,6 +94,7 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
   }
   cleaned = cleaned.trim()
 
+  // Extract JSON object
   const jsonStart = cleaned.indexOf('{')
   const jsonEnd = cleaned.lastIndexOf('}')
   if (jsonStart === -1 || jsonEnd === -1) {
@@ -93,7 +103,36 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
 
   cleaned = cleaned.slice(jsonStart, jsonEnd + 1)
 
-  const parsed = JSON.parse(cleaned) as Partial<ProgramGenerationResponse>
+  // Try to parse JSON, with improved error handling
+  let parsed: Partial<ProgramGenerationResponse>
+  try {
+    parsed = JSON.parse(cleaned) as Partial<ProgramGenerationResponse>
+  } catch (parseError) {
+    // If parsing fails, try to fix common issues with unescaped newlines
+    // This is a workaround for AI models returning JSON with actual newlines in strings
+    try {
+      // Replace actual newlines inside JSON strings with escaped newlines
+      // This regex is conservative and only replaces newlines in content values
+      let fixed = cleaned.replace(/"content":\s*"([^"]*)"/g, (match: string) => {
+        const escaped = match
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t')
+        return escaped
+      })
+      
+      parsed = JSON.parse(fixed) as Partial<ProgramGenerationResponse>
+    } catch (fixError) {
+      // Last resort: show helpful error with context
+      const errorContext = cleaned.substring(
+        Math.max(0, 1100 - 200),
+        Math.min(cleaned.length, 1100 + 200)
+      )
+      throw new Error(
+        `Failed to parse AI response as JSON. Error: ${parseError instanceof Error ? parseError.message : String(parseError)}\n\nContext around error: ...${errorContext}...`
+      )
+    }
+  }
 
   if (!parsed.files || !Array.isArray(parsed.files)) {
     throw new Error('AI response missing files array')
