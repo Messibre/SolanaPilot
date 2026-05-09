@@ -199,7 +199,7 @@ WHEN GENERATING CODE:
 
 WORKSPACE CONTEXT:
 {WORKSPACE_CONTEXT}
-`
+`;
 
 export const PROGRAM_GENERATION_PROMPT = `
 Generate a complete, deployable Anchor smart contract.
@@ -216,7 +216,7 @@ REQUIREMENTS:
 - Comments should explain WHY constraints are needed, not just WHAT they do
 - Maximum 3 instructions for clarity and instruction size budget (1232 byte limit)
 - Include descriptive error codes for debugging
-`
+`;
 
 export const FRONTEND_PROMPT = `
 You are an expert Solana frontend developer.
@@ -292,4 +292,4 @@ Return ONLY valid JSON with this schema:
 }
 
 All file content must have newlines escaped as \\n (already enforced by JSON format).
-`
+`;

@@ -85,21 +85,24 @@ export async function activate(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("solanaCopilot.generateFrontend", async () => {
-      if (!(await ensureAIReady(context))) {
-        return;
-      }
+    vscode.commands.registerCommand(
+      "solanaCopilot.generateFrontend",
+      async () => {
+        if (!(await ensureAIReady(context))) {
+          return;
+        }
 
-      const workspaceRoot = getWorkspaceRoot();
-      if (!workspaceRoot) {
-        void vscode.window.showErrorMessage(
-          "❌ No workspace folder open. Please open a folder first.",
-        );
-        return;
-      }
+        const workspaceRoot = getWorkspaceRoot();
+        if (!workspaceRoot) {
+          void vscode.window.showErrorMessage(
+            "❌ No workspace folder open. Please open a folder first.",
+          );
+          return;
+        }
 
-      await generateFrontend(workspaceRoot);
-    }),
+        await generateFrontend(workspaceRoot);
+      },
+    ),
   );
 
   context.subscriptions.push(
