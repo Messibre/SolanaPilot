@@ -1,4 +1,32 @@
 import * as vscode from "vscode";
+import * as os from "os";
+import * as fs from "fs";
+import * as path from "path";
+
+// Terminal command constants for maintainability
+const DEPLOY_COMMANDS = {
+  SET_DEVNET: "solana config set --url devnet",
+  AIRDROP: "solana airdrop 2",
+  BUILD: "anchor build",
+  DEPLOY: "anchor deploy",
+};
+
+const DEPLOY_MESSAGES = {
+  START: "🚀 SolanaPilot — Deploying to Devnet",
+  CONFIG: "🔧 Configuring Solana CLI to devnet...",
+  AIRDROP: "💰 Airdropping SOL for deployment fees...",
+  BUILD: "🏗️ Building Anchor program (this takes 2-4 minutes)...",
+  DEPLOY: "🚀 Deploying to devnet...",
+  WARNING:
+    "⚠️ SECURITY: Your default keypair will be used. Never deploy from mainnet without review!",
+};
+
+const MARKERS = {
+  AIRDROP_FAILED: "⚠️ AIRDROP_FAILED",
+  BUILD_FAILED: "❌ BUILD_FAILED",
+  DEPLOY_SUCCESS: "✅ DEPLOY_SUCCESS",
+  DEPLOY_FAILED: "❌ DEPLOY_FAILED",
+};
 
 export class TerminalRunner {
   private terminal: vscode.Terminal | undefined;
@@ -38,8 +66,23 @@ export class TerminalRunner {
    * Deploy a Solana Anchor program to devnet.
    * Creates a terminal, runs the full deployment pipeline,
    * watches for success/failure events, and shows appropriate notifications.
+   * Includes private key security warnings.
    */
   public async runDeploy(workspaceRoot: string): Promise<void> {
+    // Security check: warn user about using default keypair
+    const confirmed = await vscode.window.showWarningMessage(
+      DEPLOY_MESSAGES.WARNING +
+        "\n\nDeploying to devnet only. Confirm you understand the security implications.",
+      { modal: true },
+      "Proceed with Devnet Deploy",
+      "Cancel",
+    );
+
+    if (confirmed !== "Proceed with Devnet Deploy") {
+      vscode.window.showInformationMessage("Deployment cancelled.");
+      return;
+    }
+
     const terminalName = "🚀 Solana Copilot";
 
     // Close any existing terminal with the same name
@@ -54,39 +97,39 @@ export class TerminalRunner {
     const escapedWorkspaceRoot = workspaceRoot.replace(/"/g, '\\"');
 
     // Use a temp marker file to track completion
-    const tempDir = require("os").tmpdir();
+    const tempDir = os.tmpdir();
     const markerId = Date.now();
-    const markerFile = `${tempDir}/solana-deploy-${markerId}.marker`;
-    const outputFile = `${tempDir}/solana-deploy-${markerId}.output`;
+    const markerFile = path.join(tempDir, `solana-deploy-${markerId}.marker`);
+    const outputFile = path.join(tempDir, `solana-deploy-${markerId}.output`);
 
     const script = `
 cd "${escapedWorkspaceRoot}" 2>&1 | tee "${outputFile}"
 echo "" | tee -a "${outputFile}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "${outputFile}"
-echo "  🚀 SolanaPilot — Deploying to Devnet" | tee -a "${outputFile}"
+echo "  ${DEPLOY_MESSAGES.START}" | tee -a "${outputFile}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "${outputFile}"
 echo "" | tee -a "${outputFile}"
-echo "🔧 Configuring Solana CLI to devnet..." | tee -a "${outputFile}"
-solana config set --url devnet 2>&1 | tee -a "${outputFile}"
+echo "${DEPLOY_MESSAGES.CONFIG}" | tee -a "${outputFile}"
+${DEPLOY_COMMANDS.SET_DEVNET} 2>&1 | tee -a "${outputFile}"
 echo "" | tee -a "${outputFile}"
-echo "💰 Airdropping SOL for deployment fees..." | tee -a "${outputFile}"
-solana airdrop 2 2>&1 | tee -a "${outputFile}" || echo "⚠️ AIRDROP_FAILED" | tee -a "${outputFile}"
+echo "${DEPLOY_MESSAGES.AIRDROP}" | tee -a "${outputFile}"
+${DEPLOY_COMMANDS.AIRDROP} 2>&1 | tee -a "${outputFile}" || echo "${MARKERS.AIRDROP_FAILED}" | tee -a "${outputFile}"
 echo "" | tee -a "${outputFile}"
-echo "🏗️ Building Anchor program (this takes 2-4 minutes)..." | tee -a "${outputFile}"
-anchor build 2>&1 | tee -a "${outputFile}"
+echo "${DEPLOY_MESSAGES.BUILD}" | tee -a "${outputFile}"
+${DEPLOY_COMMANDS.BUILD} 2>&1 | tee -a "${outputFile}"
 if [ $? -ne 0 ]; then
-  echo "❌ BUILD_FAILED" | tee -a "${outputFile}"
+  echo "${MARKERS.BUILD_FAILED}" | tee -a "${outputFile}"
   echo "BUILD_FAILED" > "${markerFile}"
   exit 1
 fi
 echo "" | tee -a "${outputFile}"
-echo "🚀 Deploying to devnet..." | tee -a "${outputFile}"
-anchor deploy 2>&1 | tee -a "${outputFile}"
+echo "${DEPLOY_MESSAGES.DEPLOY}" | tee -a "${outputFile}"
+${DEPLOY_COMMANDS.DEPLOY} 2>&1 | tee -a "${outputFile}"
 if [ $? -eq 0 ]; then
-  echo "✅ DEPLOY_SUCCESS" | tee -a "${outputFile}"
+  echo "${MARKERS.DEPLOY_SUCCESS}" | tee -a "${outputFile}"
   echo "SUCCESS" > "${markerFile}"
 else
-  echo "❌ DEPLOY_FAILED" | tee -a "${outputFile}"
+  echo "${MARKERS.DEPLOY_FAILED}" | tee -a "${outputFile}"
   echo "FAILED" > "${markerFile}"
 fi
 `;
@@ -105,17 +148,19 @@ fi
         if (checkCount > maxChecks) {
           // Timeout - clean up and resolve
           try {
-            const fs = require("fs");
             if (fs.existsSync(markerFile)) fs.unlinkSync(markerFile);
             if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
-          } catch {}
+          } catch {
+            // ignore cleanup errors
+          }
+          vscode.window.showWarningMessage(
+            "Deployment timed out (6 minutes). Check the terminal for progress.",
+          );
           resolve();
           return;
         }
 
         try {
-          const fs = require("fs");
-
           // Check if marker file exists
           if (fs.existsSync(markerFile)) {
             const marker = fs.readFileSync(markerFile, "utf-8").trim();
@@ -136,7 +181,7 @@ fi
             }
 
             // Check for airdrop failure in output even if deployment continued
-            if (output.includes("⚠️ AIRDROP_FAILED")) {
+            if (output.includes(MARKERS.AIRDROP_FAILED)) {
               await this.showAirdropFailedNotification();
             }
 
@@ -144,7 +189,9 @@ fi
             try {
               if (fs.existsSync(markerFile)) fs.unlinkSync(markerFile);
               if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
-            } catch {}
+            } catch {
+              // ignore cleanup errors
+            }
 
             resolve();
             return;
