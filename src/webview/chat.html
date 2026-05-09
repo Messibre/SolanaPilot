@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'wasm-unsafe-eval'; img-src data: https:; font-src data:" />
     <title>SolanaPilot</title>
     <style>
       * {
@@ -20,7 +21,9 @@
         color: #e5e7eb;
         display: flex;
         flex-direction: column;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+          sans-serif;
         height: 100vh;
         overflow: hidden;
       }
@@ -511,6 +514,24 @@
         box-shadow: none;
       }
 
+      .clear-btn {
+        background: transparent;
+        border: 1px solid #505050;
+        border-radius: 6px;
+        color: #a0a0a0;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 6px 10px;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+      }
+
+      .clear-btn:hover {
+        border-color: #dc2626;
+        color: #fca5a5;
+      }
+
       .toast {
         background: #10b981;
         border-radius: 8px;
@@ -618,10 +639,21 @@
         <div class="subtitle">Solana development assistant</div>
       </div>
       <div class="header-right">
-        <div class="status" id="modeStatus">Ask mode: read-only Solana help</div>
-        <div class="mode-switch">
-          <button class="mode-btn active" id="askModeBtn" type="button">Ask</button>
-          <button class="mode-btn" id="agentModeBtn" type="button">Agent</button>
+        <div class="status" id="modeStatus">
+          Ask mode: read-only Solana help
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="mode-switch">
+            <button class="mode-btn active" id="askModeBtn" type="button">
+              Ask
+            </button>
+            <button class="mode-btn" id="agentModeBtn" type="button">
+              Agent
+            </button>
+          </div>
+          <button class="clear-btn" id="clearBtn" type="button" title="Clear chat history">
+            ✕ Clear
+          </button>
         </div>
       </div>
     </div>
@@ -633,11 +665,17 @@
         <div class="mode-grid">
           <div class="mode-card">
             <h3>💬 Ask Mode</h3>
-            <p>Get help with Solana architecture, debug PDAs, review security, and understand Anchor patterns.</p>
+            <p>
+              Get help with Solana architecture, debug PDAs, review security,
+              and understand Anchor patterns.
+            </p>
           </div>
           <div class="mode-card">
             <h3>🤖 Agent Mode</h3>
-            <p>Generate programs, deploy to devnet, improve files, and scaffold frontends automatically.</p>
+            <p>
+              Generate programs, deploy to devnet, improve files, and scaffold
+              frontends automatically.
+            </p>
           </div>
         </div>
         <div class="quick-chips" id="quickChips"></div>
@@ -646,8 +684,20 @@
 
     <div class="composer">
       <div class="composer-left">
-        <div class="composer-hint" id="composerHint">Ask mode — workspace read-only</div>
-        <textarea id="userInput" rows="1" placeholder="Ask about your Solana code..."></textarea>
+        <div class="composer-hint" id="composerHint">
+          Ask mode — workspace read-only
+        </div>
+        <div style="position: relative; width: 100%;">
+          <textarea
+            id="userInput"
+            rows="1"
+            placeholder="Ask about your Solana code..."
+            maxlength="5000"
+          ></textarea>
+          <div style="font-size: 11px; color: #707070; margin-top: 4px; text-align: right;">
+            <span id="charCount">0</span>/5000
+          </div>
+        </div>
       </div>
       <button class="send-btn" id="sendBtn" type="button">Send</button>
     </div>
@@ -657,11 +707,13 @@
       const messages = document.getElementById("messages");
       const userInput = document.getElementById("userInput");
       const sendBtn = document.getElementById("sendBtn");
+      const clearBtn = document.getElementById("clearBtn");
       const askModeBtn = document.getElementById("askModeBtn");
       const agentModeBtn = document.getElementById("agentModeBtn");
       const modeStatus = document.getElementById("modeStatus");
       const composerHint = document.getElementById("composerHint");
       const quickChips = document.getElementById("quickChips");
+      const charCount = document.getElementById("charCount");
 
       const savedState = vscode.getState() || {};
       let currentMode = savedState.mode === "agent" ? "agent" : "ask";
@@ -671,13 +723,13 @@
         ask: [
           "Explain how PDAs work in Anchor",
           "Review the current program for Solana-specific risks",
-          "Why would this test fail at runtime on Solana?"
+          "Why would this test fail at runtime on Solana?",
         ],
         agent: [
           "Generate a voting program with polls and votes",
           "Improve the current test file so it matches the program",
-          "Fix the current workspace files to compile cleanly"
-        ]
+          "Fix the current workspace files to compile cleanly",
+        ],
       };
 
       function setMode(mode, announce) {
@@ -701,7 +753,9 @@
         vscode.setState({ mode });
 
         if (announce) {
-          showToast(mode === "ask" ? "Switched to Ask mode" : "Switched to Agent mode");
+          showToast(
+            mode === "ask" ? "Switched to Ask mode" : "Switched to Agent mode",
+          );
         }
       }
 
@@ -729,7 +783,10 @@
       }
 
       function getTimestamp() {
-        return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       }
 
       function addMessage(content, role, mode, options = {}) {
@@ -738,7 +795,8 @@
 
         const avatar = document.createElement("div");
         avatar.className = "avatar";
-        avatar.textContent = role === "user" ? "You" : role === "system" ? "Sys" : "AI";
+        avatar.textContent =
+          role === "user" ? "You" : role === "system" ? "Sys" : "AI";
 
         const contentWrap = document.createElement("div");
         contentWrap.className = "content-wrap";
@@ -828,7 +886,12 @@
         messages.scrollTop = messages.scrollHeight;
       }
 
-      function sendMessage(textOverride, modeOverride, echoUser = true, messageType = "ask") {
+      function sendMessage(
+        textOverride,
+        modeOverride,
+        echoUser = true,
+        messageType = "ask",
+      ) {
         const text = (textOverride || userInput.value).trim();
         const mode = modeOverride || currentMode;
 
@@ -847,7 +910,7 @@
         vscode.postMessage({
           type: messageType,
           text,
-          mode
+          mode,
         });
       }
 
@@ -859,7 +922,7 @@
               onClick: () => {
                 setMode("agent", true);
                 sendMessage(originalPrompt, "agent", false, "rerun");
-              }
+              },
             },
             {
               label: "Show Draft Here",
@@ -868,11 +931,11 @@
                 setLoading(true, "Drafting a safe plan...");
                 vscode.postMessage({
                   type: "showDraft",
-                  text: originalPrompt
+                  text: originalPrompt,
                 });
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
       }
 
@@ -964,20 +1027,59 @@
         const code = document.getElementById(`code-${id}`).textContent;
         vscode.postMessage({
           type: "insertCode",
-          code
+          code,
         });
+      }
+
+      function updateCharCount() {
+        charCount.textContent = userInput.value.length;
+      }
+
+      function clearChatHistory() {
+        const shouldClear = confirm(
+          "Clear all chat history? This cannot be undone."
+        );
+        if (!shouldClear) {
+          return;
+        }
+
+        messages.innerHTML = "";
+        const welcome = document.createElement("div");
+        welcome.className = "welcome";
+        welcome.innerHTML = `
+          <h2>Welcome to SolanaPilot</h2>
+          <p>Two modes to help you build on Solana:</p>
+          <div class="mode-grid">
+            <div class="mode-card">
+              <h3>💬 Ask Mode</h3>
+              <p>Get help with Solana architecture, debug PDAs, review security, and understand Anchor patterns.</p>
+            </div>
+            <div class="mode-card">
+              <h3>🤖 Agent Mode</h3>
+              <p>Generate programs, deploy to devnet, improve files, and scaffold frontends automatically.</p>
+            </div>
+          </div>
+          <div class="quick-chips" id="quickChips"></div>
+        `;
+        messages.appendChild(welcome);
+        renderQuickChips();
+        showToast("Chat history cleared");
       }
 
       askModeBtn.addEventListener("click", () => setMode("ask", true));
       agentModeBtn.addEventListener("click", () => setMode("agent", true));
       sendBtn.addEventListener("click", () => sendMessage());
+      clearBtn.addEventListener("click", () => clearChatHistory());
       userInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           sendMessage();
         }
       });
-      userInput.addEventListener("input", resizeTextarea);
+      userInput.addEventListener("input", () => {
+        resizeTextarea();
+        updateCharCount();
+      });
 
       window.addEventListener("message", (event) => {
         const message = event.data;
@@ -994,7 +1096,7 @@
         } else if (message.type === "insertCode") {
           vscode.postMessage({
             type: "insertCode",
-            code: message.code
+            code: message.code,
           });
         }
       });
