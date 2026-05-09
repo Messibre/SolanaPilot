@@ -3,6 +3,7 @@ import { initAI } from "./aiClient";
 import { ChatPanel } from "./chatPanel";
 import { getWorkspaceRoot } from "./fileWriter";
 import { generateAndDeploy } from "./programGenerator";
+import { generateFrontend } from "./frontendGenerator";
 import { getApiKey, saveApiKey } from "./secretStorage";
 import { TerminalRunner } from "./terminalRunner";
 
@@ -84,10 +85,20 @@ export async function activate(
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("solanaCopilot.generateFrontend", () => {
-      void vscode.window.showInformationMessage(
-        "Frontend generation is not part of this slice yet. Run it after deploy when Feature 4 is added.",
-      );
+    vscode.commands.registerCommand("solanaCopilot.generateFrontend", async () => {
+      if (!(await ensureAIReady(context))) {
+        return;
+      }
+
+      const workspaceRoot = getWorkspaceRoot();
+      if (!workspaceRoot) {
+        void vscode.window.showErrorMessage(
+          "❌ No workspace folder open. Please open a folder first.",
+        );
+        return;
+      }
+
+      await generateFrontend(workspaceRoot);
     }),
   );
 
