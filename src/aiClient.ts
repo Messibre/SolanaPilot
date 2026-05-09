@@ -22,8 +22,7 @@ export async function callAI(
     model: MODEL_NAME,
     generationConfig: {
       temperature: expectJSON ? 0.1 : 0.7,
-      maxOutputTokens: expectJSON ? 8192 : 2048,
-      ...(expectJSON ? { responseMimeType: 'application/json' } : {})
+      maxOutputTokens: expectJSON ? 8192 : 2048
     }
   })
 

@@ -30,16 +30,17 @@
 
 ### 1️⃣ **Gemini API (REQUIRED)**
 
-| Property | Details |
-|----------|---------|
-| **Service** | Google Generative AI (gemini-2.5-flash) |
-| **Purpose** | AI responses in chat panel |
-| **Get Here** | https://aistudio.google.com |
-| **Cost** | FREE tier: 60 req/min, 1500 req/day |
-| **Key Format** | Starts with `AIza...` |
-| **Signup** | Google account (takes 2 minutes) |
+| Property       | Details                                 |
+| -------------- | --------------------------------------- |
+| **Service**    | Google Generative AI (gemini-2.5-flash) |
+| **Purpose**    | AI responses in chat panel              |
+| **Get Here**   | https://aistudio.google.com             |
+| **Cost**       | FREE tier: 60 req/min, 1500 req/day     |
+| **Key Format** | Starts with `AIza...`                   |
+| **Signup**     | Google account (takes 2 minutes)        |
 
 **Steps to get Gemini API key:**
+
 ```
 1. Go to: https://aistudio.google.com
 2. Click: "Get API Key" → "Create new API key"
@@ -49,14 +50,14 @@
 
 ### 2️⃣ **Solana RPC Endpoint (Optional, for Features 3-4)**
 
-| Property | Details |
-|----------|---------|
-| **Service** | Solana blockchain RPC |
-| **Purpose** | Read/write on-chain data (deployment) |
-| **Free Option** | https://api.devnet.solana.com (no key) |
-| **Premium** | Helius: https://www.helius.xyz |
-| **When Needed** | After implementing Features 3-4 |
-| **Current Status** | NOT required for Feature 1 (Chat) |
+| Property           | Details                                |
+| ------------------ | -------------------------------------- |
+| **Service**        | Solana blockchain RPC                  |
+| **Purpose**        | Read/write on-chain data (deployment)  |
+| **Free Option**    | https://api.devnet.solana.com (no key) |
+| **Premium**        | Helius: https://www.helius.xyz         |
+| **When Needed**    | After implementing Features 3-4        |
+| **Current Status** | NOT required for Feature 1 (Chat)      |
 
 ---
 
@@ -65,12 +66,14 @@
 ### ✅ Method 1: VS Code SecretStorage (Built-in, Recommended)
 
 **What it does:**
+
 - Stores API key encrypted in system keychain
 - Never exposed in logs or files
 - Survives VS Code restart
 - Per-workspace storage
 
 **How to use:**
+
 1. Open Debug VS Code (press `F5` in main window)
 2. Command Palette: `Ctrl+Shift+P`
 3. Search: `Solana Copilot: Set Gemini API Key`
@@ -78,6 +81,7 @@
 5. Done! It's securely stored
 
 **Storage location:**
+
 - Windows: Windows Credential Manager
 - macOS: Keychain
 - Linux: Secret Service / KWallet
@@ -92,15 +96,17 @@ GEMINI_API_KEY=AIza_YOUR_KEY_HERE
 ```
 
 **In code:**
+
 ```typescript
-import dotenv from 'dotenv'
-dotenv.config()
-const key = process.env.GEMINI_API_KEY
+import dotenv from "dotenv";
+dotenv.config();
+const key = process.env.GEMINI_API_KEY;
 ```
 
 ### ⚠️ Method 3: GitHub Secrets (CI/CD Only)
 
 For automated testing/deployment:
+
 1. Repo → Settings → Secrets and variables → Actions
 2. New secret: `GEMINI_API_KEY`
 3. Use: `${{ secrets.GEMINI_API_KEY }}`
@@ -129,6 +135,7 @@ For automated testing/deployment:
 ```
 
 **Verify nothing sensitive was committed:**
+
 ```bash
 git log -p -- .env
 # Should show: "nothing to show"
@@ -141,9 +148,11 @@ git log -p -- .env
 ### Test 1: Gemini API (Chat Panel)
 
 **Prerequisite:**
+
 - Gemini API key set via `Solana Copilot: Set Gemini API Key`
 
 **Test steps:**
+
 ```
 1. Open Debug VS Code (F5)
 2. Press Ctrl+Shift+S to open Chat Panel
@@ -154,6 +163,7 @@ git log -p -- .env
 ```
 
 **Success criteria:**
+
 - ✅ Chat opens
 - ✅ AI responds to questions
 - ✅ Responses mention Solana-specific topics
@@ -163,6 +173,7 @@ git log -p -- .env
 ### Test 2: Context Building
 
 **Test steps:**
+
 ```
 1. Open a folder with Anchor project
 2. Open Chat Panel (Ctrl+Shift+S)
@@ -171,12 +182,14 @@ git log -p -- .env
 ```
 
 **Success criteria:**
+
 - ✅ AI knows which files are open
 - ✅ Context is accurate
 
 ### Test 3: Multi-turn Conversation
 
 **Test steps:**
+
 ```
 1. Ask: "What is rent exemption?"
 2. Response: Explanation of rent
@@ -187,12 +200,14 @@ git log -p -- .env
 ```
 
 **Success criteria:**
+
 - ✅ AI remembers previous answers
 - ✅ Context flows naturally
 
 ### Test 4: Error Handling
 
 **Test steps:**
+
 ```
 1. Command Palette: "Set Gemini API Key"
 2. Enter: invalid_key_12345
@@ -204,6 +219,7 @@ git log -p -- .env
 ```
 
 **Success criteria:**
+
 - ✅ Errors are clear and actionable
 - ✅ User knows what went wrong
 
@@ -223,13 +239,14 @@ git log -p -- .env
 
 ## 📊 API Rate Limits
 
-| API | Limit | What Happens if Exceeded |
-|-----|-------|-------------------------|
-| Gemini Free | 60 req/min | Wait 60 seconds, auto-retry |
-| Gemini Free | 1500 req/day | Wait until next day |
-| Solana Public | 100 req/sec | Request rejected, try private RPC |
+| API           | Limit        | What Happens if Exceeded          |
+| ------------- | ------------ | --------------------------------- |
+| Gemini Free   | 60 req/min   | Wait 60 seconds, auto-retry       |
+| Gemini Free   | 1500 req/day | Wait until next day               |
+| Solana Public | 100 req/sec  | Request rejected, try private RPC |
 
 **SolanaPilot handles this:**
+
 - Client-side rate limiting (waits between requests)
 - Automatic retry with exponential backoff
 - User-friendly error messages
@@ -239,6 +256,7 @@ git log -p -- .env
 ## 🔒 Security Best Practices
 
 ✅ **DO:**
+
 - Store API keys in VS Code SecretStorage (default)
 - Use .env.example as template (never commit .env)
 - Check `.gitignore` before committing
@@ -246,6 +264,7 @@ git log -p -- .env
 - Use different keys for dev/prod
 
 ❌ **DON'T:**
+
 - Hardcode API keys in source files
 - Commit .env files
 - Share API keys via email/chat
@@ -256,14 +275,14 @@ git log -p -- .env
 
 ## 📞 Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| "API key required" | Run `Solana Copilot: Set Gemini API Key` |
-| "Invalid API key" | Get new key from aistudio.google.com |
-| "Rate limit" | Wait 1 minute, SolanaPilot auto-throttles |
-| "Chat won't open" | Reload VS Code (Ctrl+Shift+P → Reload) |
-| "File not reading" | Check file permissions, ensure it's in workspace |
-| "Context too large" | Files are auto-truncated to 8000 chars total |
+| Problem             | Solution                                         |
+| ------------------- | ------------------------------------------------ |
+| "API key required"  | Run `Solana Copilot: Set Gemini API Key`         |
+| "Invalid API key"   | Get new key from aistudio.google.com             |
+| "Rate limit"        | Wait 1 minute, SolanaPilot auto-throttles        |
+| "Chat won't open"   | Reload VS Code (Ctrl+Shift+P → Reload)           |
+| "File not reading"  | Check file permissions, ensure it's in workspace |
+| "Context too large" | Files are auto-truncated to 8000 chars total     |
 
 ---
 

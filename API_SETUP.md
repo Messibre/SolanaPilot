@@ -14,13 +14,16 @@ This document explains all external APIs used by SolanaPilot, where to get them,
 ## 🤖 Gemini API (Required)
 
 ### What It Is
+
 Google's Gemini API. In the current implementation, SolanaPilot uses the `gemini-2.5-flash` model for:
+
 - AI chat responses in the chat panel
 - Code generation prompts
 - Security analysis
 - Code explanations
 
 ### Where to Get It
+
 **Free tier available!**
 
 1. Go to: https://aistudio.google.com
@@ -30,11 +33,13 @@ Google's Gemini API. In the current implementation, SolanaPilot uses the `gemini
 5. Save it securely (instructions below)
 
 ### Pricing
+
 - **Free Tier**: 60 requests/minute, 1500 requests/day
 - **Pay-as-you-go**: $0.075 per million input tokens, $0.30 per million output tokens
 - For a hackathon (1-3 days): Free tier is sufficient
 
 ### Rate Limits
+
 - 60 req/min = 1 request per second
 - SolanaPilot enforces client-side rate limiting to avoid hitting this
 
@@ -43,11 +48,13 @@ Google's Gemini API. In the current implementation, SolanaPilot uses the `gemini
 ## 🔗 Solana RPC (Optional)
 
 ### What It Is
+
 Remote Procedure Call endpoint for reading/writing on-chain data.
 
 Right now, Feature 2 deploys through the local Solana CLI and Anchor CLI, so an RPC API key is not required for generation or deploy.
 
 You only need an RPC provider if you later add:
+
 - frontend state reads
 - custom network status panels
 - direct RPC calls from the extension instead of CLI tooling
@@ -55,21 +62,25 @@ You only need an RPC provider if you later add:
 ### Free RPC Endpoints
 
 #### Option 1: Helius (Recommended)
+
 - **URL**: https://devnet.helius-rpc.com/?api-key=YOUR_API_KEY
 - **Get API Key**: https://www.helius.xyz
 - **Free Tier**: 1M credits/month (≈ 100,000 RPC calls)
 
 #### Option 2: Solana Public RPC
+
 - **URL**: https://api.devnet.solana.com
 - **Rate Limit**: No key needed, but 100 req/sec limit
 - **Use**: Great for testing, but unreliable during periods of high network load
 
 #### Option 3: QuickNode
+
 - **URL**: https://your-app.solana-devnet.quiknode.pro/your-token/
 - **Get Key**: https://www.quicknode.com
 - **Free Tier**: 5GB/month
 
 ### Recommendation
+
 - **For now**: Use public Solana RPC (no key needed)
 - **Later**: Add Helius when you want reliable performance
 
@@ -82,6 +93,7 @@ You only need an RPC provider if you later add:
 This is what SolanaPilot uses by default.
 
 **How it works:**
+
 1. User runs: `Solana Copilot: Set Gemini API Key`
 2. Prompted to enter API key
 3. VS Code stores it **encrypted** in the system keychain:
@@ -89,12 +101,14 @@ This is what SolanaPilot uses by default.
    - macOS: Keychain
    - Linux: Secret Service / KWallet
 
-**Security**: 
+**Security**:
+
 - Keys are **never** stored in plaintext in files
 - Keys are **never** logged or printed
 - Only accessible within VS Code process
 
 Stored secret key name:
+
 ```text
 solanaPilot.geminiApiKey
 ```
@@ -111,10 +125,11 @@ SOLANA_RPC_URL=https://devnet.helius-rpc.com
 ```
 
 Load in code:
+
 ```typescript
-import dotenv from 'dotenv'
-dotenv.config()
-const geminiKey = process.env.GEMINI_API_KEY
+import dotenv from "dotenv";
+dotenv.config();
+const geminiKey = process.env.GEMINI_API_KEY;
 ```
 
 ### Option 3: GitHub Secrets (for CI/CD)
@@ -125,6 +140,7 @@ If building with GitHub Actions:
 2. Click "New repository secret"
 3. Name: `GEMINI_API_KEY`, Value: `AIza...`
 4. Use in workflow:
+
 ```yaml
 - name: Run tests
   env:
@@ -148,6 +164,7 @@ If building with GitHub Actions:
 **Expected**: SolanaPilot responds with introduction
 
 **If fails**:
+
 - ❌ "API key invalid" → Key is wrong, get new one from aistudio.google.com
 - ❌ "Rate limit" → Wait a few minutes, you hit 60 req/min limit
 - ❌ "Safety block" → Rephrase your question (Gemini safety filters triggered)
@@ -183,11 +200,13 @@ Test that workspace context is correctly gathered:
 6. Click `Deploy to Devnet` when prompted.
 
 Expected:
+
 - `Anchor.toml`, workspace `Cargo.toml`, program `Cargo.toml`, `lib.rs`, and a test file are created
 - `lib.rs` opens automatically
 - the integrated terminal runs `solana config set --url devnet`, `solana airdrop 2`, `anchor build`, and `anchor deploy`
 
 Prerequisites for deploy:
+
 - `solana` CLI installed
 - `anchor` CLI installed
 - a local Solana wallet configured for devnet
@@ -195,6 +214,7 @@ Prerequisites for deploy:
 ### Test 5: Terminal Tooling
 
 **Test Solana CLI availability:**
+
 ```bash
 solana --version
 solana config get
@@ -202,17 +222,20 @@ solana balance
 ```
 
 If any fail, install Solana CLI:
+
 ```bash
 sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 ```
 
 **Test Anchor CLI:**
+
 ```bash
 anchor --version
 anchor build  # in an Anchor project
 ```
 
 If fails, install Anchor:
+
 ```bash
 cargo install --git https://github.com/coral-xyz/anchor avm --locked
 avm install latest
@@ -236,10 +259,12 @@ avm use latest
 ## 📊 API Usage Monitoring
 
 ### Gemini Free Tier
+
 - Go to: https://aistudio.google.com → Your API Key → Check usage
 - Shows: Daily quota, current usage, reset time
 
 ### Helius (when integrated)
+
 - Dashboard: https://dashboard.helius.xyz
 - Shows: RPC calls used, bandwidth, errors
 
@@ -247,13 +272,13 @@ avm use latest
 
 ## 🚨 Troubleshooting
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| "Invalid API key" | Key is wrong or expired | Get new key from aistudio.google.com |
-| "Rate limit exceeded" | Hit 60 req/min limit | Wait 1 minute, SolanaPilot auto-throttles |
-| "API key required" | Key not set | Run `Solana Copilot: Set Gemini API Key` |
-| "Safety blocked" | Gemini safety filter triggered | Rephrase question, less aggressive language |
-| "Network error" | No internet connection | Check connectivity |
+| Error                 | Cause                          | Solution                                    |
+| --------------------- | ------------------------------ | ------------------------------------------- |
+| "Invalid API key"     | Key is wrong or expired        | Get new key from aistudio.google.com        |
+| "Rate limit exceeded" | Hit 60 req/min limit           | Wait 1 minute, SolanaPilot auto-throttles   |
+| "API key required"    | Key not set                    | Run `Solana Copilot: Set Gemini API Key`    |
+| "Safety blocked"      | Gemini safety filter triggered | Rephrase question, less aggressive language |
+| "Network error"       | No internet connection         | Check connectivity                          |
 
 ---
 

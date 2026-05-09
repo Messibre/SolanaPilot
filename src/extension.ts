@@ -1,90 +1,105 @@
-import * as vscode from 'vscode'
-import { initAI } from './aiClient'
-import { ChatPanel } from './chatPanel'
-import { getWorkspaceRoot } from './fileWriter'
-import { generateAndDeploy } from './programGenerator'
-import { getApiKey, saveApiKey } from './secretStorage'
-import { TerminalRunner } from './terminalRunner'
+import * as vscode from "vscode";
+import { initAI } from "./aiClient";
+import { ChatPanel } from "./chatPanel";
+import { getWorkspaceRoot } from "./fileWriter";
+import { generateAndDeploy } from "./programGenerator";
+import { getApiKey, saveApiKey } from "./secretStorage";
+import { TerminalRunner } from "./terminalRunner";
 
-async function configureApiKey(context: vscode.ExtensionContext): Promise<void> {
+async function configureApiKey(
+  context: vscode.ExtensionContext,
+): Promise<void> {
   const apiKey = await vscode.window.showInputBox({
-    prompt: 'Enter your Gemini API key',
+    prompt: "Enter your Gemini API key",
     ignoreFocusOut: true,
     password: true,
-    validateInput: (value) => (value.trim().length === 0 ? 'API key is required' : undefined)
-  })
+    validateInput: (value) =>
+      value.trim().length === 0 ? "API key is required" : undefined,
+  });
 
   if (!apiKey) {
-    return
+    return;
   }
 
-  await saveApiKey(context, apiKey.trim())
-  initAI(apiKey.trim())
-  void vscode.window.showInformationMessage('Gemini API key saved for SolanaPilot.')
+  await saveApiKey(context, apiKey.trim());
+  initAI(apiKey.trim());
+  void vscode.window.showInformationMessage(
+    "Gemini API key saved for SolanaPilot.",
+  );
 }
 
-async function ensureAIReady(context: vscode.ExtensionContext): Promise<boolean> {
-  const apiKey = await getApiKey(context, false)
+async function ensureAIReady(
+  context: vscode.ExtensionContext,
+): Promise<boolean> {
+  const apiKey = await getApiKey(context, false);
   if (!apiKey) {
-    return false
+    return false;
   }
 
-  initAI(apiKey.trim())
-  return true
+  initAI(apiKey.trim());
+  return true;
 }
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const savedKey = await getApiKey(context, true)
+export async function activate(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const savedKey = await getApiKey(context, true);
   if (savedKey) {
-    initAI(savedKey)
+    initAI(savedKey);
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.setApiKey', async () => {
-      await configureApiKey(context)
-    })
-  )
+    vscode.commands.registerCommand("solanaCopilot.setApiKey", async () => {
+      await configureApiKey(context);
+    }),
+  );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.generateProgram', async () => {
-      if (!(await ensureAIReady(context))) {
-        return
-      }
+    vscode.commands.registerCommand(
+      "solanaCopilot.generateProgram",
+      async () => {
+        if (!(await ensureAIReady(context))) {
+          return;
+        }
 
-      await generateAndDeploy(context)
-    })
-  )
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.deployToDevnet', async () => {
-      const root = getWorkspaceRoot()
-      if (!root) {
-        void vscode.window.showErrorMessage('Open a workspace folder first')
-        return
-      }
-
-      const runner = TerminalRunner.getInstance()
-      await runner.runDeploy(root)
-    })
-  )
+        await generateAndDeploy(context);
+      },
+    ),
+  );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.generateFrontend', () => {
+    vscode.commands.registerCommand(
+      "solanaCopilot.deployToDevnet",
+      async () => {
+        const root = getWorkspaceRoot();
+        if (!root) {
+          void vscode.window.showErrorMessage("Open a workspace folder first");
+          return;
+        }
+
+        const runner = TerminalRunner.getInstance();
+        await runner.runDeploy(root);
+      },
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("solanaCopilot.generateFrontend", () => {
       void vscode.window.showInformationMessage(
-        'Frontend generation is not part of this slice yet. Run it after deploy when Feature 4 is added.'
-      )
-    })
-  )
+        "Frontend generation is not part of this slice yet. Run it after deploy when Feature 4 is added.",
+      );
+    }),
+  );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('solanaCopilot.openChat', async () => {
+    vscode.commands.registerCommand("solanaCopilot.openChat", async () => {
       if (!(await ensureAIReady(context))) {
-        return
+        return;
       }
 
-      ChatPanel.createOrShow(context)
-    })
-  )
+      ChatPanel.createOrShow(context);
+    }),
+  );
 }
 
 export function deactivate(): void {

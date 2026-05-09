@@ -63,6 +63,7 @@ npm run compile
 2. **Expected**: A new panel opens on the right with "⚡ SolanaPilot" header
 
 **Alternative:**
+
 1. Press `Ctrl+Shift+P`
 2. Search: `Solana Copilot: Open Chat`
 3. Press Enter
@@ -70,6 +71,7 @@ npm run compile
 ### Test 1.2: Welcome Message
 
 **Expected in chat panel:**
+
 - "⚡ SolanaPilot Ready" welcome card centered
 - "Ask me anything about Solana development"
 - 3 quick chips: "🔑 Explain PDAs", "🛡️ Security tips", "⚓ Anchor basics"
@@ -122,6 +124,7 @@ npm run compile
 ### Test 1.6: Error Handling
 
 **Test API key error:**
+
 1. Open Command Palette: `Ctrl+Shift+P`
 2. Run: `Solana Copilot: Set Gemini API Key`
 3. Enter: `wrong_key_12345`
@@ -129,6 +132,7 @@ npm run compile
 5. **Expected**: Error message appears with suggestion to check API key
 
 **Test network error:**
+
 1. Disconnect internet
 2. Try to send a message
 3. **Expected**: Error message "Failed to reach AI"
@@ -152,6 +156,7 @@ npm run compile
 ## 🔮 Test Feature 2: Generate Smart Contract (When Implemented)
 
 ### Setup
+
 ```bash
 # Install Rust (if not done)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -165,6 +170,7 @@ avm install latest && avm use latest
 ```
 
 ### Test 2.1: Generate Program
+
 ```
 (When ready)
 1. New workspace folder
@@ -178,6 +184,7 @@ avm install latest && avm use latest
 ## 🚀 Test Feature 3: Deploy to Devnet (When Implemented)
 
 ### Prerequisites
+
 ```bash
 solana config set --url devnet
 solana config get  # shows devnet cluster
@@ -186,6 +193,7 @@ solana balance     # should show ~5 SOL
 ```
 
 ### Test 3.1: Deploy
+
 ```
 (When ready)
 1. Open your generated Anchor program
@@ -289,6 +297,7 @@ Expected: < 3 seconds
 ```
 
 If > 5 seconds:
+
 - Check internet speed
 - Check Gemini API status (aistudio.google.com)
 - Might be rate-limited (wait a minute)
@@ -352,7 +361,7 @@ SolanaPilot is ready when:
 ✅ Markdown rendering looks good  
 ✅ Loading states clear and visible  
 ✅ Error messages are helpful  
-✅ Performance < 5s per request  
+✅ Performance < 5s per request
 
 ---
 
