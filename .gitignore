@@ -47,3 +47,8 @@ coverage/
 
 # System
 thumbs.db
+
+# Documentation (setup + test notes)
+TESTING.md
+SETUP_COMPLETE.md
+API_SETUP.md
