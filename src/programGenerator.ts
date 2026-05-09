@@ -200,60 +200,107 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
 
   cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
 
-  // Try to parse JSON with multiple repair strategies
+  // Try to parse JSON with robust repair strategies
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned) as unknown;
   } catch (parseError) {
     let fixed: string | null = null;
 
-    // Strategy 1: Fix unescaped newlines and control characters
+    // Strategy 1: Pre-process to escape ALL newlines in quoted strings
+    // This handles cases where AI returns code with actual newlines
     try {
       fixed = cleaned;
-      // Escape bare newlines and carriage returns that aren't already escaped
-      fixed = fixed.replace(/(?<!\\)\n/g, "\\n").replace(/(?<!\\)\r/g, "\\r");
+      
+      // First, escape all literal newlines that appear inside any quoted string
+      // This regex finds quoted strings and replaces newlines within them
+      let inString = false;
+      let escaped = false;
+      let result = "";
+      
+      for (let i = 0; i < fixed.length; i++) {
+        const char = fixed[i];
+        const nextChar = fixed[i + 1];
+        
+        if (char === "\\" && !escaped) {
+          escaped = true;
+          result += char;
+        } else if (char === '"' && !escaped) {
+          inString = !inString;
+          result += char;
+          escaped = false;
+        } else if ((char === "\n" || char === "\r" || char === "\t") && inString) {
+          // Replace control characters inside strings
+          if (char === "\n") result += "\\n";
+          else if (char === "\r") result += "\\r";
+          else if (char === "\t") result += "\\t";
+          escaped = false;
+        } else {
+          result += char;
+          escaped = false;
+        }
+      }
+      
+      fixed = result;
       parsed = JSON.parse(fixed) as unknown;
     } catch (fixError1) {
-      // Strategy 2: More aggressive - escape all literal newlines in content fields
+      // Strategy 2: Use regex to find and fix unterminated strings
       try {
-        fixed = cleaned.replace(
-          /"content"\s*:\s*"([^"\\]|\\.)*"/g,
-          (match: string) => {
-            // Extract the string value and escape newlines
-            const value = match.substring(0, match.length);
-            const escaped = value
-              .replace(/\n/g, "\\n")
-              .replace(/\r/g, "\\r")
-              .replace(/\t/g, "\\t");
-            return escaped;
-          },
-        );
+        fixed = cleaned;
+        
+        // Find all string values and ensure they're properly escaped
+        fixed = fixed.replace(/": "([^"\\]|\\.)*(?=\n|$)/g, (match: string) => {
+          // If the string isn't terminated before newline, add the closing quote
+          if (!match.endsWith('"')) {
+            return match + '"';
+          }
+          return match;
+        });
+        
+        // Also escape bare newlines
+        fixed = fixed.replace(/([^\\])\n/g, "$1\\n");
+        
         parsed = JSON.parse(fixed) as unknown;
       } catch (fixError2) {
-        // Strategy 3: Try replacing common JSON structural issues
+        // Strategy 3: Brute force - replace all unescaped newlines outside of strings
         try {
-          fixed = cleaned
-            // Fix missing commas between properties
-            .replace(/"\s*\n\s*"/g, '", "')
-            // Fix escaped backslashes in content
-            .replace(/\\\\n/g, "\\n")
-            .replace(/\\\\r/g, "\\r");
+          fixed = cleaned;
+          
+          // Split by quotes and process
+          const parts = fixed.split('"');
+          const result = [];
+          
+          for (let i = 0; i < parts.length; i++) {
+            if (i % 2 === 0) {
+              // Outside quotes - escape newlines
+              result.push(parts[i].replace(/\n/g, "\\n").replace(/\r/g, "\\r"));
+            } else {
+              // Inside quotes - escape but preserve content
+              result.push(
+                parts[i]
+                  .replace(/(?<!\\)\n/g, "\\n")
+                  .replace(/(?<!\\)\r/g, "\\r")
+              );
+            }
+          }
+          
+          fixed = result.join('"');
           parsed = JSON.parse(fixed) as unknown;
         } catch (fixError3) {
-          // Final attempt: log all errors for debugging
+          // All strategies failed - provide diagnostic info
           const errorLines = [
             `Original error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
-            `Fix attempt 1 error: ${fixError1 instanceof Error ? fixError1.message : String(fixError1)}`,
-            `Fix attempt 2 error: ${fixError2 instanceof Error ? fixError2.message : String(fixError2)}`,
-            `Fix attempt 3 error: ${fixError3 instanceof Error ? fixError3.message : String(fixError3)}`,
+            `Strategy 1 error: ${fixError1 instanceof Error ? fixError1.message : String(fixError1)}`,
+            `Strategy 2 error: ${fixError2 instanceof Error ? fixError2.message : String(fixError2)}`,
+            `Strategy 3 error: ${fixError3 instanceof Error ? fixError3.message : String(fixError3)}`,
           ];
 
-          const contextStart = Math.max(0, 500);
-          const contextEnd = Math.min(cleaned.length, 800);
+          const contextStart = Math.max(0, 4000);
+          const contextEnd = Math.min(cleaned.length, 4500);
           const errorContext = cleaned.substring(contextStart, contextEnd);
 
           throw new Error(
-            `Failed to parse AI response as JSON after 3 repair attempts.\n${errorLines.join("\n")}\n\nJSON preview: ...${errorContext}...`,
+            `Failed to parse AI response after 3 repair strategies.\n${errorLines.join("\n")}\n\nJSON context: ...${errorContext}...`,
           );
         }
       }

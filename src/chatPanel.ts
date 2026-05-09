@@ -7,6 +7,7 @@ import { buildWorkspaceContext } from "./contextBuilder";
 import {
   getWorkspaceRoot,
   openFileInEditor,
+  resolveWorkspacePath,
   type WorkspaceFile,
   writeFilesToWorkspace,
 } from "./fileWriter";
@@ -24,7 +25,8 @@ type ChatWebviewMessage =
   | { type: "ask"; text: string; mode: ChatMode }
   | { type: "rerun"; text: string; mode: ChatMode }
   | { type: "showDraft"; text: string }
-  | { type: "insertCode"; code: string };
+  | { type: "insertCode"; code: string }
+  | { type: "clearHistory" };
 
 interface WebviewOutgoingMessage {
   type: "thinking" | "response" | "error" | "insertCode" | "modeSuggestion";
@@ -65,7 +67,10 @@ export class ChatPanel {
       "chat.html",
     );
     try {
-      this.panel.webview.html = fs.readFileSync(htmlPath, "utf8");
+      this.panel.webview.html = this.getWebviewHtml(
+        this.panel.webview,
+        htmlPath,
+      );
     } catch (error) {
       console.error("[SolanaPilot] Error loading chat.html:", error);
       this.panel.webview.html = "<h1>Error loading chat interface</h1>";
@@ -105,6 +110,9 @@ export class ChatPanel {
             case "insertCode":
               await this.handleInsertCodeMessage(message.code);
               break;
+            case "clearHistory":
+              this.conversationHistory = [];
+              break;
           }
         } catch (error) {
           console.error("[SolanaPilot] Error handling message:", error);
@@ -114,6 +122,30 @@ export class ChatPanel {
         }
       },
     );
+  }
+
+  private getWebviewHtml(
+    webview: vscode.Webview,
+    htmlPath: string,
+  ): string {
+    const rawHtml = fs.readFileSync(htmlPath, "utf8");
+    const nonce = this.createNonce();
+
+    return rawHtml
+      .replaceAll("{{cspSource}}", webview.cspSource)
+      .replaceAll("{{nonce}}", nonce);
+  }
+
+  private createNonce(): string {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let nonce = "";
+
+    for (let index = 0; index < 32; index++) {
+      nonce += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    return nonce;
   }
 
   private async handleChatMessage(
@@ -303,7 +335,8 @@ export class ChatPanel {
       }
 
       if (parsed.openFile) {
-        await openFileInEditor(path.join(workspaceRoot, parsed.openFile));
+        const safeOpenPath = resolveWorkspacePath(workspaceRoot, parsed.openFile);
+        await openFileInEditor(safeOpenPath);
       }
 
       const summaryLines = [
@@ -509,7 +542,7 @@ export class ChatPanel {
       throw new Error("Agent mode did not return valid JSON.");
     }
 
-    let slice = cleaned.slice(jsonStart, jsonEnd + 1);
+    const slice = cleaned.slice(jsonStart, jsonEnd + 1);
 
     let parsed: unknown;
     try {
@@ -593,6 +626,15 @@ export class ChatPanel {
 
     if (response.openFile && typeof response.openFile !== "string") {
       throw new Error("Agent mode returned an invalid openFile value.");
+    }
+
+    if (
+      typeof response.openFile === "string" &&
+      (path.isAbsolute(response.openFile) ||
+        path.normalize(response.openFile) === ".." ||
+        path.normalize(response.openFile).startsWith(`..${path.sep}`))
+    ) {
+      throw new Error("Agent mode returned an unsafe openFile path.");
     }
 
     if (response.notes && !Array.isArray(response.notes)) {

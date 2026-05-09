@@ -16,6 +16,7 @@ export async function updateDiagnostics(
 ): Promise<void> {
   // Placeholder implementation
   // This will be fully implemented for the Security Check feature
+  void issues;
   console.log("[SolanaPilot] Would display diagnostics for:", fileUri.fsPath);
 }
 
@@ -24,5 +25,6 @@ export async function updateDiagnostics(
  */
 export function clearDiagnostics(fileUri: vscode.Uri): void {
   // Placeholder
+  void fileUri;
   console.log("[SolanaPilot] Clearing diagnostics");
 }

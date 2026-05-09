@@ -11,6 +11,46 @@ export function getWorkspaceRoot(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
 }
 
+export function isSafeRelativeWorkspacePath(
+  workspaceRoot: string,
+  relativePath: string,
+): boolean {
+  if (!relativePath || path.isAbsolute(relativePath)) {
+    return false;
+  }
+
+  const normalized = path.normalize(relativePath);
+  if (
+    normalized === "." ||
+    normalized === ".." ||
+    normalized.startsWith(`..${path.sep}`)
+  ) {
+    return false;
+  }
+
+  const resolvedRoot = path.resolve(workspaceRoot);
+  const resolvedPath = path.resolve(resolvedRoot, normalized);
+  const relativeTarget = path.relative(resolvedRoot, resolvedPath);
+
+  return (
+    relativeTarget.length > 0 &&
+    relativeTarget !== ".." &&
+    !relativeTarget.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativeTarget)
+  );
+}
+
+export function resolveWorkspacePath(
+  workspaceRoot: string,
+  relativePath: string,
+): string {
+  if (!isSafeRelativeWorkspacePath(workspaceRoot, relativePath)) {
+    throw new Error(`Refusing to resolve unsafe workspace path: ${relativePath}`);
+  }
+
+  return path.resolve(workspaceRoot, path.normalize(relativePath));
+}
+
 export async function openFileInEditor(absolutePath: string): Promise<void> {
   try {
     if (!fs.existsSync(absolutePath)) {
@@ -40,17 +80,7 @@ export async function writeFilesToWorkspace(
     const written: string[] = [];
 
     for (const file of files) {
-      // Prevent absolute paths and path traversal escaping the workspace
-      if (path.isAbsolute(file.path)) {
-        throw new Error(`Refusing to write absolute path: ${file.path}`);
-      }
-
-      const normalized = path.normalize(file.path);
-      const fullPath = path.resolve(workspaceRoot, normalized);
-
-      if (!fullPath.startsWith(path.resolve(workspaceRoot))) {
-        throw new Error(`Refusing to write outside workspace: ${file.path}`);
-      }
+      const fullPath = resolveWorkspacePath(workspaceRoot, file.path);
 
       if (Buffer.byteLength(file.content || "", "utf8") > MAX_FILE_BYTES) {
         throw new Error(
@@ -68,10 +98,7 @@ export async function writeFilesToWorkspace(
     const libRsFile = files.find((file) => file.path.endsWith("lib.rs"));
     if (libRsFile) {
       try {
-        const libRsPath = path.resolve(
-          workspaceRoot,
-          path.normalize(libRsFile.path),
-        );
+        const libRsPath = resolveWorkspacePath(workspaceRoot, libRsFile.path);
         const doc = await vscode.workspace.openTextDocument(libRsPath);
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
       } catch (openErr) {

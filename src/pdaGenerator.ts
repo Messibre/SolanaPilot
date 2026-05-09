@@ -1,8 +1,5 @@
-import * as vscode from "vscode";
-import { callAI } from "./aiClient";
-
 /**
- * PDA generator module — utility for generating PDA code
+ * PDA generator module â€” utility for generating PDA code
  * Used by: Generate PDA command
  */
 

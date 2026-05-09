@@ -1,18 +1,19 @@
 import * as vscode from "vscode";
 
 /**
- * Sidebar provider module — VS Code sidebar panel for devnet status
+ * Sidebar provider module â€” VS Code sidebar panel for devnet status
  * Used by: Devnet Deploy Helper Panel feature
  */
 
-export class DevnetStatusProvider implements vscode.TreeDataProvider<any> {
-  getTreeItem(element: any): vscode.TreeItem {
-    // Placeholder implementation
-    return new vscode.TreeItem("Devnet Status");
+export class DevnetStatusProvider
+  implements vscode.TreeDataProvider<vscode.TreeItem>
+{
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
+    return element;
   }
 
-  getChildren(element?: any): Thenable<any[]> {
-    // Placeholder
+  getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
+    void element;
     return Promise.resolve([]);
   }
 
@@ -20,6 +21,7 @@ export class DevnetStatusProvider implements vscode.TreeDataProvider<any> {
    * Register the sidebar provider
    */
   static register(context: vscode.ExtensionContext): void {
+    void context;
     console.log("[SolanaPilot] Sidebar provider stub (coming soon)");
   }
 }

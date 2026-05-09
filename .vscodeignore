@@ -10,6 +10,7 @@ dist
 **/*.map
 **/*.test.ts
 src/**
+!src/webview/chat.html
 !out/**
 .DS_Store
 *.vsix

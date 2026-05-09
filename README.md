@@ -1,56 +1,68 @@
-# ⚡ SolanaPilot — AI Copilot for Solana Development
+# SolanaPilot
 
-> Built for Dev3pack Global Hackathon 2026.
+AI-powered VS Code extension for Solana development. The current shareable build focuses on four features:
 
-AI-powered VS Code extension that generates Solana smart contracts from natural language, deploys them to devnet, and scaffolds React frontends from Anchor IDLs.
+- Solana-aware AI chat inside VS Code
+- Anchor smart contract generation
+- Devnet deployment flow
+- React frontend generation from Anchor IDL
 
-## ✨ Features
+## What This Build Is Ready For
 
-- **🧠 Solana-Aware AI Chat** — Ask about Anchor, PDAs, Sealevel, security, and SPL patterns.
-- **⚡ Smart Contract Generator** — Describe a program, generate Anchor files, then review before writing.
-- **🚀 One-Click Devnet Deploy** — Automated build and deploy flow with terminal feedback.
-- **⚛️ Frontend Scaffolding** — Generate a React dApp frontend for your Anchor program.
-- **🛡️ Security Guardrails** — API key storage, workspace limits, path checks, and confirmation prompts.
+- Asking Solana and Anchor questions in chat
+- Generating an Anchor project into the open workspace
+- Deploying to Solana devnet through the integrated terminal
+- Generating a React frontend after `anchor build` or deploy
 
-## 🎥 Demo Video
+## Security Guardrails
 
-Add your 3-minute demo video link here before marketplace submission.
+- Gemini API keys are stored in VS Code SecretStorage
+- Workspace context is truncated and redacted before being sent to Gemini
+- File writes are restricted to the open workspace
+- Program generation and frontend generation require explicit confirmation before writing files
+- Devnet deployment requires explicit confirmation before terminal commands run
 
-## 📸 Screenshots
+## Prerequisites
 
-Add screenshots of the chat, generator, deploy flow, and frontend scaffold here.
-
-## 📦 Installation
-
-1. Install from the VS Code Marketplace.
-2. Get a free Gemini API key: https://aistudio.google.com
-3. Run: **SolanaPilot: Set Gemini API Key**
-4. Start building with **SolanaPilot: Open Chat** or **SolanaPilot: Generate Smart Contract**
-
-## ⚙️ Prerequisites
-
+- VS Code 1.84+
 - Node.js 18+
-- Rust + Solana CLI + Anchor for deploy workflows
-- Gemini API key for AI features
+- Gemini API key from https://aistudio.google.com
+- For deploy and frontend flows:
+  - Solana CLI
+  - Anchor CLI
+  - Rust toolchain
 
-## 📚 Usage
+## Install
 
-- Open the command palette and search for `SolanaPilot` commands.
-- Use Ask mode for read-only guidance.
-- Switch to Agent mode to generate, preview, and write files.
-- Deploy to devnet from the chat or command palette.
+Install the packaged extension:
 
-## 🛡️ Security & Privacy
+```bash
+code --install-extension solana-copilot-1.0.0.vsix
+```
 
-- API keys are stored in VS Code SecretStorage.
-- Workspace context is truncated before being sent to the AI.
-- The extension only sends data to the configured Gemini API.
-- Generated programs deploy to devnet by default.
+Or run it locally in Extension Development Host:
 
-## 🙏 Credits
+```bash
+npm install
+npm run compile
+npm run esbuild
+```
 
-Built by SolanaPilot contributors using Gemini 2.5 Flash for Dev3pack Global Hackathon 2026.
+## Basic Usage
 
-## 📄 License
+1. Run `SolanaPilot: Set Gemini API Key`
+2. Open a workspace folder
+3. Use `SolanaPilot: Open Chat` for read-only guidance or Agent mode actions
+4. Use `SolanaPilot: Generate Smart Contract` to scaffold an Anchor program
+5. Use `SolanaPilot: Deploy to Devnet` to run the build and deploy flow
+6. Use `SolanaPilot: Generate React Frontend` after an IDL exists
+
+## Notes
+
+- This tester build intentionally exposes the four implemented features only.
+- Generated code should still be reviewed before real-world use.
+- Devnet deployment uses the wallet currently configured in Solana CLI.
+
+## License
 
 MIT

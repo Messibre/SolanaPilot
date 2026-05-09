@@ -71,21 +71,6 @@
         "title": "Generate React Frontend",
         "category": "SolanaPilot",
         "icon": "$(browser)"
-      },
-      {
-        "command": "solanaCopilot.explainCode",
-        "title": "Explain This Code",
-        "category": "SolanaPilot"
-      },
-      {
-        "command": "solanaCopilot.fixCode",
-        "title": "Fix Solana Issue",
-        "category": "SolanaPilot"
-      },
-      {
-        "command": "solanaCopilot.insertCode",
-        "title": "Insert Code at Cursor",
-        "category": "SolanaPilot"
       }
     ],
     "keybindings": [
@@ -100,18 +85,6 @@
         "mac": "cmd+shift+g"
       }
     ],
-    "menus": {
-      "editor/context": [
-        {
-          "command": "solanaCopilot.explainCode",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "solanaCopilot.fixCode",
-          "when": "editorHasSelection"
-        }
-      ]
-    },
     "configuration": {
       "title": "SolanaPilot",
       "properties": {

@@ -6,6 +6,7 @@ const SECRET_PATTERNS: Array<[RegExp, string]> = [
   [/\bAIza[0-9A-Za-z\-_]{20,}\b/g, "[REDACTED_GOOGLE_API_KEY]"],
   [/\b(sk|rk)_[A-Za-z0-9]{20,}\b/g, "[REDACTED_API_KEY]"],
   [/\b[1-9A-HJ-NP-Za-km-z]{64,88}\b/g, "[REDACTED_POSSIBLE_PRIVATE_KEY]"],
+  [/\[(?:\s*\d{1,3}\s*,){31,127}\s*\d{1,3}\s*\]/g, "[REDACTED_KEY_ARRAY]"],
   [
     /((?:api[_-]?key|secret|token|private[_-]?key)\s*[:=]\s*)(["']?)[^\r\n"']+\2/gi,
     "$1[REDACTED_SECRET]",
@@ -13,14 +14,27 @@ const SECRET_PATTERNS: Array<[RegExp, string]> = [
 ];
 
 function shouldExcludeFromContext(filePath: string): boolean {
-  const lower = filePath.toLowerCase();
+  const normalized = filePath.replace(/[\\/]/g, "/").toLowerCase();
+  const baseName = path.basename(normalized);
 
   return (
-    lower.endsWith(".env") ||
-    lower.endsWith(".env.local") ||
-    lower.includes(`${path.sep}.env`) ||
-    lower.includes(`${path.sep}node_modules${path.sep}`) ||
-    lower.includes(`${path.sep}.git${path.sep}`)
+    normalized.endsWith(".env") ||
+    normalized.includes("/.env") ||
+    normalized.includes("/node_modules/") ||
+    normalized.includes("/.git/") ||
+    normalized.includes("/target/deploy/") ||
+    normalized.endsWith(".pem") ||
+    normalized.endsWith(".key") ||
+    normalized.endsWith(".p12") ||
+    normalized.endsWith(".pfx") ||
+    normalized.endsWith(".asc") ||
+    baseName === ".npmrc" ||
+    baseName === ".yarnrc" ||
+    baseName === ".gitconfig" ||
+    baseName === "id.json" ||
+    baseName.includes("keypair") ||
+    baseName.includes("secret") ||
+    baseName.includes("credential")
   );
 }
 

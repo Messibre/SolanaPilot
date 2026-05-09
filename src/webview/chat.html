@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'wasm-unsafe-eval'; img-src data: https:; font-src data:"
+      content="default-src 'none'; style-src {{cspSource}} 'nonce-{{nonce}}' 'unsafe-inline'; script-src 'nonce-{{nonce}}'; img-src {{cspSource}} data: https:; font-src {{cspSource}} data:;"
     />
     <title>SolanaPilot</title>
-    <style>
+    <style nonce="{{nonce}}">
       * {
         box-sizing: border-box;
         margin: 0;
@@ -717,7 +717,7 @@
       <button class="send-btn" id="sendBtn" type="button">Send</button>
     </div>
 
-    <script>
+    <script nonce="{{nonce}}">
       // Safely acquire VS Code API with fallback
       let vscode;
       try {
@@ -1097,17 +1097,35 @@
         messages.appendChild(welcome);
         renderQuickChips();
         showToast("Chat history cleared");
+        vscode.postMessage({ type: "clearHistory" });
       }
 
-      // Attach event listeners with safety checks
-      if (askModeBtn)
+      // Attach event listeners - these MUST run after DOM is ready
+      try {
         askModeBtn.addEventListener("click", () => setMode("ask", true));
-      if (agentModeBtn)
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to attach askModeBtn listener", e);
+      }
+
+      try {
         agentModeBtn.addEventListener("click", () => setMode("agent", true));
-      if (sendBtn) sendBtn.addEventListener("click", () => sendMessage());
-      if (clearBtn)
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to attach agentModeBtn listener", e);
+      }
+
+      try {
+        sendBtn.addEventListener("click", () => sendMessage());
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to attach sendBtn listener", e);
+      }
+
+      try {
         clearBtn.addEventListener("click", () => clearChatHistory());
-      if (userInput) {
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to attach clearBtn listener", e);
+      }
+
+      try {
         userInput.addEventListener("keydown", (e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -1118,6 +1136,8 @@
           resizeTextarea();
           updateCharCount();
         });
+      } catch (e) {
+        console.error("[SolanaPilot] Failed to attach userInput listeners", e);
       }
 
       window.addEventListener("message", (event) => {

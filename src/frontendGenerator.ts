@@ -249,21 +249,31 @@ export async function generateFrontend(workspaceRoot: string): Promise<void> {
         progress.report({ message: "Generating frontend files..." });
         const fullPrompt = buildFrontendPrompt(idlJson, programId!);
         generated = await callFrontendAIWithRetry(fullPrompt);
-
-        if (!generated?.files?.length) {
-          throw new Error("No frontend files were generated.");
-        }
-
-        progress.report({ message: "Writing frontend files..." });
-        const wrote = await writeFilesToWorkspace(generated.files);
-        if (!wrote) {
-          throw new Error("Failed to write generated frontend files.");
-        }
       },
     );
 
     if (!generated?.files?.length) {
+      throw new Error("No frontend files were generated.");
+    }
+
+    const appExists = fs.existsSync(path.join(workspaceRoot, "app"));
+    const confirmWrite = await vscode.window.showWarningMessage(
+      `About to write ${generated.files.length} frontend files to your workspace${appExists ? " and overwrite files inside the existing app folder" : ""}:\n\n${generated.files.map((file) => `• ${file.path}`).join("\n")}`,
+      { modal: true },
+      "Yes, Write Frontend",
+      "Cancel",
+    );
+
+    if (confirmWrite !== "Yes, Write Frontend") {
+      void vscode.window.showInformationMessage(
+        "Frontend generation cancelled before writing files.",
+      );
       return;
+    }
+
+    const wrote = await writeFilesToWorkspace(generated.files);
+    if (!wrote) {
+      throw new Error("Failed to write generated frontend files.");
     }
 
     const choice = await vscode.window.showInformationMessage(
