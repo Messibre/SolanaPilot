@@ -34,10 +34,10 @@ RUN rustup default stable \
 
 # Install Solana CLI (v1.17.0) with retries and fail-fast behavior
 RUN set -eux; \
-  for i in 1 2 3; do \
+  for i in 1 2 3 4 5; do \
     curl --ipv4 --tlsv1.2 -sSfL https://release.solana.com/v1.17.0/install | sh && break; \
     echo "Solana install failed, retry $i"; \
-    sleep $((i*5)); \
+    sleep 10; \
   done; \
   test -x /root/.local/share/solana/install/active_release/bin/solana
 ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
