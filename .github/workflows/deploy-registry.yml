@@ -40,40 +40,34 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install Solana CLI
+      - name: Build CI Docker image
         run: |
-          sh -c "$(curl -sSfL https://release.solana.com/v1.17.0/install)"
-          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-          solana --version
+          docker build -t solanapilot-ci:latest -f ci/Dockerfile .
 
-      - name: Install Anchor
+      - name: Run build and deploy inside container
         run: |
-          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.0 anchor-cli --locked
-          anchor --version
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/workspace \
+            -w /workspace \
+            solanapilot-ci:latest /bin/bash -lc "set -euo pipefail; \
+              export HOME=/root; \
+              solana --version || true; \
+              anchor --version || true; \
+              solana config set --url https://api.devnet.solana.com; \
+              mkdir -p ~/.config/solana; \
+              solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase; \
+              echo DEPLOYER_KEY=$(solana address) > /tmp/deployer_addr; \
+              cd programs/registry; \
+              anchor build --program-name solanapilot_registry; \
+              anchor deploy --program-name solanapilot_registry --provider.cluster devnet || true; \
+              echo \"Deployment attempted\"; \
+            "
 
-      - name: Configure Solana CLI to Devnet
+      - name: Capture deployer address
         run: |
-          solana config set --url https://api.devnet.solana.com
-          solana config get
-
-      - name: Create keypair directory
-        run: mkdir -p ~/.config/solana
-
-      - name: Create temporary keypair for deployment
-        run: |
-          solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase
-          echo "DEPLOYER_KEY=$(solana address)" >> $GITHUB_ENV
-
-      - name: Build Registry Program
-        working-directory: ./programs/registry
-        run: |
-          cd ../../
-          anchor build --program-name solanapilot_registry
-
-      - name: Deploy Registry Program to Devnet
-        run: |
-          anchor deploy --program-name solanapilot_registry --provider.cluster devnet || true
-          echo "Deployment attempted - checking on-chain program..."
+          if [ -f /tmp/deployer_addr ]; then
+            DEPL=$(cat /tmp/deployer_addr); echo "DEPLOYER_KEY=$DEPL" >> $GITHUB_ENV
+          fi
 
       - name: Verify Deployment
         run: |
