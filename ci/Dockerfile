@@ -32,8 +32,14 @@ RUN rustup default stable \
   && rustup component add rust-src rustfmt clippy \
   && rustup target add wasm32-unknown-unknown
 
-# Install Solana CLI (v1.17.0)
-RUN curl --ipv4 --tlsv1.2 -sSfL https://release.solana.com/v1.17.0/install | sh || true
+# Install Solana CLI (v1.17.0) with retries and fail-fast behavior
+RUN set -eux; \
+  for i in 1 2 3; do \
+    curl --ipv4 --tlsv1.2 -sSfL https://release.solana.com/v1.17.0/install | sh && break; \
+    echo "Solana install failed, retry $i"; \
+    sleep $((i*5)); \
+  done; \
+  test -x /root/.local/share/solana/install/active_release/bin/solana
 ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
 
 # Install Anchor CLI

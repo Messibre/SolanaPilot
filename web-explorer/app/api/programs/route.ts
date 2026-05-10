@@ -12,8 +12,8 @@ const REGISTRY_PROGRAM_ID = new PublicKey(
 
 function resolveIdlPath(): string {
   const candidates = [
-    path.join(process.cwd(), "..", "idl", "solanapilot_registry.json"),
     path.join(process.cwd(), "lib", "solanapilot_registry.json"),
+    path.join(process.cwd(), "..", "idl", "solanapilot_registry.json"),
   ];
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;
@@ -31,13 +31,23 @@ function loadIdl(): Idl {
 }
 
 function toInt(n: unknown): number {
-  if (typeof n === "number" && Number.isFinite(n)) return n;
-  if (n && typeof n === "object" && "toNumber" in n) {
-    const fn = (n as { toNumber: () => number }).toNumber;
-    if (typeof fn === "function") return fn.call(n);
+  if (typeof n === "number" && Number.isFinite(n)) return Math.trunc(n);
+  if (typeof n === "bigint") return Number(n);
+  if (n && typeof n === "object") {
+    const o = n as { toNumber?: () => number; toString?: () => string };
+    if (typeof o.toNumber === "function") {
+      try {
+        return o.toNumber.call(n);
+      } catch {
+        /* fall through */
+      }
+    }
+    if (typeof o.toString === "function") {
+      const parsed = parseInt(o.toString.call(n), 10);
+      if (Number.isFinite(parsed)) return parsed;
+    }
   }
-  const s = String(n);
-  const parsed = parseInt(s, 10);
+  const parsed = parseInt(String(n), 10);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 

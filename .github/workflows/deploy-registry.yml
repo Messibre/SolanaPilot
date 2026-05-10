@@ -51,8 +51,9 @@ jobs:
             -w /workspace \
             solanapilot-ci:latest /bin/bash -lc "set -euo pipefail; \
               export HOME=/root; \
-              solana --version || true; \
-              anchor --version || true; \
+              command -v solana; \
+              solana --version; \
+              anchor --version; \
               solana config set --url https://api.devnet.solana.com; \
               mkdir -p ~/.config/solana; \
               solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase; \
