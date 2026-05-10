@@ -1,30 +1,37 @@
-# 🚀 SolanaPilot Registry — Web Explorer
+# SolanaPilot Registry Web Explorer
 
-Browse all AI-generated Solana programs from SolanaPilot users.
+This web application displays registry entries for programs generated through SolanaPilot.
 
-## 🛠️ Setup
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the registry.
+Open `http://localhost:3000`.
 
-## 📦 Deploy to Vercel
+## Environment
+
+- `NEXT_PUBLIC_REGISTRY_LIVE=true` enables live on-chain fetch mode
+- `RPC_URL` or `NEXT_PUBLIC_RPC_URL` sets the Solana RPC endpoint
+
+If live mode is disabled, the UI can fall back to static/demo data depending on the current app implementation.
+
+## Deploy
 
 ```bash
 vercel
 ```
 
-The explorer will fetch program entries from the on-chain registry program at:
+## Stack
 
-- **Devnet Program ID:** `SolanaPilot1111111111111111111111111111111`
+- Next.js 15 (App Router)
+- React 18
+- TypeScript
+- Solana web3 + Anchor client libraries
 
-## 🏗️ Architecture
+## Notes
 
-- **Framework:** Next.js 15 (App Router)
-- **Styling:** Tailwind CSS
-- **Blockchain:** @solana/web3.js + @coral-xyz/anchor
-
-The explorer queries all `ProgramEntry` accounts from the registry program and displays them in a searchable, sortable grid.
+- Registry program ID is managed in application code and/or IDL files, not this README.
+- Keep IDL and program address synchronized across extension and explorer builds.
