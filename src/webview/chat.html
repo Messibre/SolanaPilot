@@ -268,6 +268,7 @@
       }
 
       .content-wrap {
+        min-width: 0;
         max-width: min(680px, 85%);
         display: flex;
         flex-direction: column;
@@ -281,6 +282,7 @@
         line-height: 1.6;
         padding: 12px 16px;
         word-break: break-word;
+        overflow-wrap: anywhere;
       }
 
       .user .bubble {
@@ -358,6 +360,7 @@
         overflow-x: auto;
         padding: 12px;
         position: relative;
+        max-width: 100%;
       }
 
       .code-block code {
@@ -578,6 +581,7 @@
 
       .bubble p {
         margin: 0 0 8px;
+        white-space: pre-wrap;
       }
 
       .bubble p:last-child {
@@ -591,6 +595,7 @@
 
       .bubble li {
         margin: 4px 0;
+        overflow-wrap: anywhere;
       }
 
       @media (max-width: 768px) {
@@ -744,13 +749,30 @@
       const charCount = document.getElementById("charCount");
 
       // Verify DOM elements exist
-      if (!messages || !userInput || !sendBtn) {
+      if (
+        !messages ||
+        !userInput ||
+        !sendBtn ||
+        !clearBtn ||
+        !askModeBtn ||
+        !agentModeBtn ||
+        !modeStatus ||
+        !composerHint ||
+        !charCount ||
+        !quickChips
+      ) {
         console.error("[SolanaPilot] Failed to find required DOM elements");
+        throw new Error(
+          "SolanaPilot: Missing required DOM elements. Extension UI failed to initialize.",
+        );
       }
 
       const savedState = vscode.getState() || {};
       let currentMode = savedState.mode === "agent" ? "agent" : "ask";
       let isLoading = false;
+      // Debounce function to prevent rapid message sends from button mashing
+      let lastSendTime = 0;
+      const SEND_DEBOUNCE_MS = 300; // Minimum 300ms between sends
 
       const quickChipContent = {
         ask: [
@@ -766,29 +788,45 @@
       };
 
       function setMode(mode, announce) {
-        currentMode = mode;
-        askModeBtn.classList.toggle("active", mode === "ask");
-        agentModeBtn.classList.toggle("active", mode === "agent");
-        modeStatus.textContent =
-          mode === "ask"
-            ? "Ask mode: read-only Solana help"
-            : "Agent mode: can write files and deploy";
-        composerHint.textContent =
-          mode === "ask"
-            ? "Ask mode — workspace read-only"
-            : "Agent mode — can generate, fix, and deploy";
-        userInput.placeholder =
-          mode === "ask"
-            ? "Ask about your Solana code..."
-            : "Tell Agent what to generate, fix, or deploy...";
+        try {
+          if (
+            !askModeBtn ||
+            !agentModeBtn ||
+            !modeStatus ||
+            !composerHint ||
+            !userInput
+          ) {
+            console.error("[SolanaPilot] setMode: DOM elements missing");
+            return;
+          }
+          currentMode = mode;
+          askModeBtn.classList.toggle("active", mode === "ask");
+          agentModeBtn.classList.toggle("active", mode === "agent");
+          modeStatus.textContent =
+            mode === "ask"
+              ? "Ask mode: read-only Solana help"
+              : "Agent mode: can write files and deploy";
+          composerHint.textContent =
+            mode === "ask"
+              ? "Ask mode — workspace read-only"
+              : "Agent mode — can generate, fix, and deploy";
+          userInput.placeholder =
+            mode === "ask"
+              ? "Ask about your Solana code..."
+              : "Tell Agent what to generate, fix, or deploy...";
 
-        renderQuickChips();
-        vscode.setState({ mode });
+          renderQuickChips();
+          vscode.setState({ mode });
 
-        if (announce) {
-          showToast(
-            mode === "ask" ? "Switched to Ask mode" : "Switched to Agent mode",
-          );
+          if (announce) {
+            showToast(
+              mode === "ask"
+                ? "Switched to Ask mode"
+                : "Switched to Agent mode",
+            );
+          }
+        } catch (e) {
+          console.error("[SolanaPilot] Error in setMode:", e);
         }
       }
 
@@ -878,45 +916,60 @@
       }
 
       function setLoading(nextValue, label) {
-        isLoading = nextValue;
-        sendBtn.disabled = nextValue;
-        userInput.disabled = nextValue;
+        try {
+          if (!sendBtn || !userInput) {
+            console.error(
+              "[SolanaPilot] setLoading: Critical DOM elements missing",
+            );
+            return;
+          }
+          isLoading = nextValue;
+          sendBtn.disabled = nextValue;
+          userInput.disabled = nextValue;
 
-        const existing = document.getElementById("loadingIndicator");
-        if (existing) {
-          existing.remove();
+          const existing = document.getElementById("loadingIndicator");
+          if (existing) {
+            existing.remove();
+          }
+
+          if (!nextValue) {
+            return;
+          }
+
+          if (!messages) {
+            console.error("[SolanaPilot] setLoading: messages element missing");
+            return;
+          }
+
+          const row = document.createElement("div");
+          row.className = "message assistant";
+          row.id = "loadingIndicator";
+
+          const avatar = document.createElement("div");
+          avatar.className = "avatar";
+          avatar.textContent = "AI";
+
+          const wrap = document.createElement("div");
+          wrap.className = "content-wrap";
+
+          const bubble = document.createElement("div");
+          bubble.className = "bubble";
+
+          const loading = document.createElement("div");
+          loading.className = "loading";
+          loading.innerHTML =
+            '<span class="spinner"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>' +
+            `<span>${label || "SolanaPilot is thinking..."}</span>`;
+
+          bubble.appendChild(loading);
+          wrap.appendChild(bubble);
+          row.appendChild(avatar);
+          row.appendChild(wrap);
+          messages.appendChild(row);
+          messages.scrollTop = messages.scrollHeight;
+        } catch (e) {
+          console.error("[SolanaPilot] Error in setLoading:", e);
         }
-
-        if (!nextValue) {
-          return;
-        }
-
-        const row = document.createElement("div");
-        row.className = "message assistant";
-        row.id = "loadingIndicator";
-
-        const avatar = document.createElement("div");
-        avatar.className = "avatar";
-        avatar.textContent = "AI";
-
-        const wrap = document.createElement("div");
-        wrap.className = "content-wrap";
-
-        const bubble = document.createElement("div");
-        bubble.className = "bubble";
-
-        const loading = document.createElement("div");
-        loading.className = "loading";
-        loading.innerHTML =
-          '<span class="spinner"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>' +
-          `<span>${label || "SolanaPilot is thinking..."}</span>`;
-
-        bubble.appendChild(loading);
-        wrap.appendChild(bubble);
-        row.appendChild(avatar);
-        row.appendChild(wrap);
-        messages.appendChild(row);
-        messages.scrollTop = messages.scrollHeight;
       }
 
       function sendMessage(
@@ -925,26 +978,43 @@
         echoUser = true,
         messageType = "ask",
       ) {
-        const text = (textOverride || userInput.value).trim();
-        const mode = modeOverride || currentMode;
+        try {
+          if (!userInput) {
+            console.error(
+              "[SolanaPilot] sendMessage: userInput element missing",
+            );
+            return;
+          }
+          const text = (textOverride || userInput.value).trim();
+          const mode = modeOverride || currentMode;
 
-        if (!text || isLoading) {
-          return;
+          // Prevent rapid sends (debounce)
+          const now = Date.now();
+          if (now - lastSendTime < SEND_DEBOUNCE_MS) {
+            return;
+          }
+          lastSendTime = now;
+
+          if (!text || isLoading) {
+            return;
+          }
+
+          if (echoUser) {
+            addMessage(text, "user", mode);
+          }
+
+          userInput.value = "";
+          resizeTextarea();
+          setLoading(true);
+
+          vscode.postMessage({
+            type: messageType,
+            text,
+            mode,
+          });
+        } catch (e) {
+          console.error("[SolanaPilot] Error in sendMessage:", e);
         }
-
-        if (echoUser) {
-          addMessage(text, "user", mode);
-        }
-
-        userInput.value = "";
-        resizeTextarea();
-        setLoading(true);
-
-        vscode.postMessage({
-          type: messageType,
-          text,
-          mode,
-        });
       }
 
       function renderModeSuggestion(text, originalPrompt) {
@@ -965,6 +1035,53 @@
                 vscode.postMessage({
                   type: "showDraft",
                   text: originalPrompt,
+                });
+              },
+            },
+          ],
+        });
+      }
+
+      function renderWorkspacePreview(message) {
+        const filesText = (message.files || [])
+          .map((file) => `- ${file.path}`)
+          .join("\n");
+
+        const previewText = [message.text, "", "Files to write:", filesText]
+          .filter((part) => part && part.length > 0)
+          .join("\n");
+
+        addMessage(previewText, "system", "agent", {
+          actions: [
+            {
+              label: "Preview Diff",
+              secondary: true,
+              onClick: () => {
+                vscode.postMessage({
+                  type: "workspacePreviewDiff",
+                  previewId: message.previewId,
+                });
+              },
+            },
+            {
+              label: "Write Files",
+              onClick: () => {
+                setLoading(true, "Writing files...");
+                vscode.postMessage({
+                  type: "workspacePreviewChoice",
+                  previewId: message.previewId,
+                  choice: "write",
+                });
+              },
+            },
+            {
+              label: "Cancel",
+              secondary: true,
+              onClick: () => {
+                vscode.postMessage({
+                  type: "workspacePreviewChoice",
+                  previewId: message.previewId,
+                  choice: "cancel",
                 });
               },
             },
@@ -1042,11 +1159,21 @@
       }
 
       function renderError(message) {
-        const box = document.createElement("div");
-        box.className = "error-box";
-        box.textContent = `Error: ${message}`;
-        messages.appendChild(box);
-        messages.scrollTop = messages.scrollHeight;
+        try {
+          if (!messages) {
+            console.error(
+              "[SolanaPilot] renderError: messages element missing",
+            );
+            return;
+          }
+          const box = document.createElement("div");
+          box.className = "error-box";
+          box.textContent = `Error: ${message}`;
+          messages.appendChild(box);
+          messages.scrollTop = messages.scrollHeight;
+        } catch (e) {
+          console.error("[SolanaPilot] Error rendering error box:", e);
+        }
       }
 
       function copyCode(id) {
@@ -1065,7 +1192,14 @@
       }
 
       function updateCharCount() {
-        charCount.textContent = userInput.value.length;
+        try {
+          if (!charCount || !userInput) {
+            return;
+          }
+          charCount.textContent = userInput.value.length;
+        } catch (e) {
+          console.error("[SolanaPilot] Error updating char count:", e);
+        }
       }
 
       function clearChatHistory() {
@@ -1110,7 +1244,10 @@
       try {
         agentModeBtn.addEventListener("click", () => setMode("agent", true));
       } catch (e) {
-        console.error("[SolanaPilot] Failed to attach agentModeBtn listener", e);
+        console.error(
+          "[SolanaPilot] Failed to attach agentModeBtn listener",
+          e,
+        );
       }
 
       try {
@@ -1152,6 +1289,9 @@
         } else if (message.type === "modeSuggestion") {
           setLoading(false);
           renderModeSuggestion(message.text, message.originalPrompt);
+        } else if (message.type === "workspacePreview") {
+          setLoading(false);
+          renderWorkspacePreview(message);
         } else if (message.type === "insertCode") {
           vscode.postMessage({
             type: "insertCode",
