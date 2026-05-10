@@ -123,6 +123,8 @@
   },
   "icon": "assets/icon.png",
   "dependencies": {
-    "@google/generative-ai": "^0.3.0"
+    "@coral-xyz/anchor": "^0.30.0",
+    "@google/generative-ai": "^0.3.0",
+    "@solana/web3.js": "^1.95.0"
   }
 }
