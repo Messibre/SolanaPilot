@@ -162,6 +162,8 @@ npm run dev
 - Tailwind CSS (Dark theme)
 - @solana/web3.js & @coral-xyz/anchor
 
+By default the explorer UI uses a **fixed demo dataset** (five sample programs). Set **`NEXT_PUBLIC_REGISTRY_LIVE=true`** to load real accounts from **`GET /api/programs`** (server-side Anchor `programEntry.all()`). For production RPC, set **`RPC_URL`** or **`NEXT_PUBLIC_RPC_URL`** (e.g. Helius).
+
 ## 🔒 Security Features
 
 - ✅ **SecretStorage** for API keys (never written to disk)

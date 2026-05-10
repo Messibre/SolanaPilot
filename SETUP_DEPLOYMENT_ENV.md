@@ -176,15 +176,13 @@ solanapilot_registry = "YOUR_PROGRAM_ID_HERE"
 const REGISTRY_PROGRAM_ID = "YOUR_PROGRAM_ID_HERE";
 ```
 
-#### File 3: `web-explorer/app/page.tsx`
+#### File 3: `web-explorer/app/api/programs/route.ts` and `web-explorer/app/page.tsx`
 
-```typescript
-const REGISTRY_PROGRAM_ID = "YOUR_PROGRAM_ID_HERE";
-```
+Update `REGISTRY_PROGRAM_ID` in the API route (and the footer constant in `page.tsx` if you keep it in sync).
 
-#### File 4: `idl/solanapilot_registry.json`
+#### File 4: `idl/solanapilot_registry.json` and `web-explorer/lib/solanapilot_registry.json`
 
-Update the IDL's metadata with your program ID if needed.
+Set the IDL `"address"` field to your deployed program ID in both copies (the explorer prefers `web-explorer/lib/` when running from that directory alone, e.g. Vercel).
 
 ### Step 4: Verify Deployment
 
