@@ -220,7 +220,12 @@ REQUIREMENTS:
 
 export const FRONTEND_PROMPT = `
 You are an expert Solana frontend developer.
-Generate a complete React + TypeScript frontend for an Anchor program.
+Generate a complete Vite + React + TypeScript frontend for an Anchor program.
+Use this fixed stack only: Vite, React 18, TypeScript, wallet-adapter, Anchor client.
+Do not ask the user to choose a frontend framework or stack.
+Do not ask the user follow-up questions.
+Do not provide a plan, explanation, or summary.
+Do not mention alternative frameworks.
 Reference: https://solana.com/developers and https://superteam.fun/build/developer-tools
 
 REQUIRED PACKAGES (use EXACT PINNED VERSIONS in package.json):
@@ -278,6 +283,7 @@ GENERATED CODE PATTERNS:
 - Pass AnchorProvider and Program via Context or props
 - Devnet RPC: Use default (https://api.devnet.solana.com) or Helius for faster confirmation
 - NO mainnet RPC URLs or private keys in generated code
+- Put the app in the app/ folder and make it runnable with Vite immediately.
 
 Program IDL: {IDL}
 Program ID: {PROGRAM_ID}
@@ -297,4 +303,5 @@ Return ONLY valid JSON with this schema:
 }
 
 All file content must have newlines escaped as \\n (already enforced by JSON format).
+If you output any prose, markdown, bullets, or questions, the response is invalid.
 `;

@@ -155,18 +155,79 @@ function parseFrontendResponse(raw: string): FrontendGenerationResponse {
 
   cleaned = cleaned.trim();
   const jsonStart = cleaned.indexOf("{");
-  const jsonEnd = cleaned.lastIndexOf("}");
-  if (jsonStart === -1 || jsonEnd === -1) {
+  if (jsonStart === -1) {
     throw new Error("AI response does not contain valid JSON.");
   }
 
-  const slice = cleaned.slice(jsonStart, jsonEnd + 1);
+  const slice = cleaned.slice(jsonStart);
+
+  const closeIncompleteJsonObject = (rawJson: string): string => {
+    let inString = false;
+    let escaped = false;
+    let openBraces = 0;
+    let completed = "";
+
+    for (let index = 0; index < rawJson.length; index++) {
+      const char = rawJson[index];
+
+      if (inString) {
+        completed += char;
+
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+
+        if (char === '"') {
+          inString = false;
+        }
+
+        continue;
+      }
+
+      completed += char;
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === "{") {
+        openBraces += 1;
+        continue;
+      }
+
+      if (char === "}") {
+        openBraces = Math.max(0, openBraces - 1);
+      }
+    }
+
+    if (inString) {
+      completed += '"';
+    }
+
+    while (openBraces > 0) {
+      completed += "}";
+      openBraces -= 1;
+    }
+
+    return completed;
+  };
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(slice) as unknown;
   } catch {
-    throw new Error("AI response JSON is malformed.");
+    try {
+      parsed = JSON.parse(closeIncompleteJsonObject(slice)) as unknown;
+    } catch {
+      throw new Error("AI response JSON is malformed.");
+    }
   }
 
   return validateFrontendGenerationResponse(parsed);
@@ -192,7 +253,9 @@ async function callFrontendAIWithRetry(
     const retryPrompt = `${prompt}
 
 Your previous response was not valid JSON.
-Return ONLY the JSON object with no other text.`;
+Return ONLY the JSON object with no other text.
+Do not ask questions. Do not explain choices. Do not write a plan.
+Use the fixed Vite + React + TypeScript stack and output only the frontend schema.`;
     const retryResponse = await callAI(retryPrompt, "", true);
     return parseFrontendResponse(retryResponse);
   }
