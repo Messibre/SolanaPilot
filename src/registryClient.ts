@@ -4,9 +4,10 @@ import { Program, AnchorProvider, Idl } from "@coral-xyz/anchor";
 import * as fs from "fs";
 import * as path from "path";
 
-// Registry program ID placeholder. Must be valid Base58 so extension activation does not fail before deployment.
-// Replace with the deployed registry program ID once available.
-const REGISTRY_PROGRAM_ID = new PublicKey("11111111111111111111111111111111");
+// Registry program ID — update after deployment with real on-chain address
+const REGISTRY_PROGRAM_ID = new PublicKey(
+  "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs",
+);
 
 export interface RegistryConfig {
   programId: string;

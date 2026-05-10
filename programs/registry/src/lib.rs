@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::bpf_loader_upgradeable;
 
-declare_id!("SolanaPilot1111111111111111111111111111111");
+declare_id!("Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs");
 
 #[program]
 pub mod solanapilot_registry {

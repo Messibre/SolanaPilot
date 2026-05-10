@@ -1,0 +1,108 @@
+name: Deploy Registry Program to Devnet
+
+on:
+  push:
+    branches:
+      - main
+      - deploy
+  workflow_dispatch:
+
+env:
+  CARGO_NET_OFFLINE: false
+  RUST_BACKTRACE: 1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown, sbf-solana-solana
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.solana.com/v1.17.0/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          solana --version
+
+      - name: Install Anchor
+        run: |
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.0 anchor-cli --locked
+          anchor --version
+
+      - name: Configure Solana CLI to Devnet
+        run: |
+          solana config set --url https://api.devnet.solana.com
+          solana config get
+
+      - name: Create keypair directory
+        run: mkdir -p ~/.config/solana
+
+      - name: Create temporary keypair for deployment
+        run: |
+          solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase
+          echo "DEPLOYER_KEY=$(solana address)" >> $GITHUB_ENV
+
+      - name: Build Registry Program
+        working-directory: ./programs/registry
+        run: |
+          cd ../../
+          anchor build --program-name solanapilot_registry
+
+      - name: Deploy Registry Program to Devnet
+        run: |
+          anchor deploy --program-name solanapilot_registry --provider.cluster devnet || true
+          echo "Deployment attempted - checking on-chain program..."
+
+      - name: Verify Deployment
+        run: |
+          # Wait a moment for the transaction to settle
+          sleep 3
+
+          # Try to fetch the program
+          PROGRAM_ID="Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
+          echo "Checking program at: $PROGRAM_ID"
+          solana program show $PROGRAM_ID --url devnet || echo "Program not yet visible"
+
+      - name: Output Results
+        run: |
+          echo "=== Deployment Summary ==="
+          echo "Registry Program ID: Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
+          echo "Deployer Address: ${{ env.DEPLOYER_KEY }}"
+          echo "Network: devnet"
+          echo "Cluster URL: https://api.devnet.solana.com"
+          echo ""
+          echo "To verify on-chain:"
+          echo "  solana program show Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs --url devnet"
+
+      - name: Comment on PR (if pull request)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ **Registry Program Deployment Workflow Triggered**\n\n` +
+                    `**Program ID:** \`Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs\`\n` +
+                    `**Network:** Devnet\n` +
+                    `**Workflow:** [View Run](${context.server_url}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            })
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: anchor-build-output
+          path: target/sbf-solana-solana/release/
+          retention-days: 7

@@ -1,15 +1,16 @@
 [package]
-name = "solanapilot-registry"
+name = "solanapilot_registry"
 version = "0.1.0"
+description = "SolanaPilot Registry - On-chain registry for AI-generated Solana programs"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-anchor-lang = "0.30.0"
-anchor-spl = "0.30.0"
-solana-program = "1.18"
+anchor-lang = "0.30"
+anchor-spl = "0.30"
+solana-program = "1.17"
 
 [profile.release]
 opt-level = 3

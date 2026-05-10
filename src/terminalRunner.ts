@@ -259,6 +259,12 @@ export class TerminalRunner {
     const lines: string[] = [];
     const add = (line: string) => lines.push(line);
 
+    // Set HOME environment variable as the first line on Windows
+    if (process.platform === "win32") {
+      add(`$env:HOME = $env:USERPROFILE`);
+      add(`Write-Host "HOME environment variable set to: $env:HOME"`);
+    }
+
     add(this.buildChangeDirectoryCommand(workspaceRoot));
     add(this.appendOutputLine(outputFile, ""));
     add(
@@ -278,21 +284,8 @@ export class TerminalRunner {
     add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.config));
     add(this.pipeCommandToOutput(DEPLOY_COMMANDS.setDevnet, outputFile));
     add(this.appendOutputLine(outputFile, ""));
-    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.airdrop));
-    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.airdrop, outputFile));
-
-    if (process.platform === "win32") {
-      add(
-        `if ($LASTEXITCODE -ne 0) { ${this.appendOutputLine(outputFile, MARKERS.airdropFailed)} }`,
-      );
-    } else {
-      add(
-        `if [ $? -ne 0 ]; then ${this.appendOutputLine(outputFile, MARKERS.airdropFailed)}; fi`,
-      );
-    }
-
-    add(this.appendOutputLine(outputFile, ""));
     add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.build));
+
     add(this.pipeCommandToOutput(DEPLOY_COMMANDS.build, outputFile));
 
     if (process.platform === "win32") {

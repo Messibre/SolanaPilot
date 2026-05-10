@@ -2,10 +2,10 @@
 anchor_version = "0.30.0"
 
 [programs.devnet]
-solanapilot_registry = "SolanaPilot1111111111111111111111111111111"
+solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
 
 [programs.localnet]
-solanapilot_registry = "SolanaPilot1111111111111111111111111111111"
+solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
 
 [registry]
 url = "https://anchor.projectserum.com"
