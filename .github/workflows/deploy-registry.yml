@@ -20,10 +20,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          targets: wasm32-unknown-unknown, sbf-solana-solana
+          override: true
+          components: rustfmt, clippy
+          target: wasm32-unknown-unknown
+
+      - name: Install SBF target
+        run: rustup target add sbf-solana-solana
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
