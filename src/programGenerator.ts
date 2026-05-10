@@ -8,6 +8,7 @@ import {
 } from "./fileWriter";
 import { PROGRAM_GENERATION_PROMPT } from "./systemPrompt";
 import { TerminalRunner } from "./terminalRunner";
+import { RegistryClient, promptToRegisterProgram } from "./registryClient";
 
 interface ProgramGenerationResponse {
   type: "full_program";
@@ -211,17 +212,17 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
     // This handles cases where AI returns code with actual newlines
     try {
       fixed = cleaned;
-      
+
       // First, escape all literal newlines that appear inside any quoted string
       // This regex finds quoted strings and replaces newlines within them
       let inString = false;
       let escaped = false;
       let result = "";
-      
+
       for (let i = 0; i < fixed.length; i++) {
         const char = fixed[i];
         const nextChar = fixed[i + 1];
-        
+
         if (char === "\\" && !escaped) {
           escaped = true;
           result += char;
@@ -229,7 +230,10 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
           inString = !inString;
           result += char;
           escaped = false;
-        } else if ((char === "\n" || char === "\r" || char === "\t") && inString) {
+        } else if (
+          (char === "\n" || char === "\r" || char === "\t") &&
+          inString
+        ) {
           // Replace control characters inside strings
           if (char === "\n") result += "\\n";
           else if (char === "\r") result += "\\r";
@@ -240,50 +244,57 @@ function parseAIResponse(raw: string): ProgramGenerationResponse {
           escaped = false;
         }
       }
-      
+
       fixed = result;
       parsed = JSON.parse(fixed) as unknown;
     } catch (fixError1) {
       // Strategy 2: Use regex to find and fix unterminated strings
       try {
         fixed = cleaned;
-        
-        // Find all string values and ensure they're properly escaped
-        fixed = fixed.replace(/": "([^"\\]|\\.)*(?=\n|$)/g, (match: string) => {
-          // If the string isn't terminated before newline, add the closing quote
-          if (!match.endsWith('"')) {
-            return match + '"';
-          }
-          return match;
-        });
-        
-        // Also escape bare newlines
-        fixed = fixed.replace(/([^\\])\n/g, "$1\\n");
-        
+
+        // Fix unterminated strings more robustly
+        // Look for pattern: ": " followed by content that doesn't have closing quote before newline
+        fixed = fixed.replace(
+          /": "[^\n]*?(?=\n|"[,}]|\s*$)/g,
+          (match: string) => {
+            // Ensure string ends with quote if it doesn't already
+            if (!match.trim().endsWith('"')) {
+              return match + '"';
+            }
+            return match;
+          },
+        );
+
         parsed = JSON.parse(fixed) as unknown;
       } catch (fixError2) {
         // Strategy 3: Brute force - replace all unescaped newlines outside of strings
         try {
           fixed = cleaned;
-          
+
           // Split by quotes and process
           const parts = fixed.split('"');
           const result = [];
-          
+
           for (let i = 0; i < parts.length; i++) {
             if (i % 2 === 0) {
               // Outside quotes - escape newlines
               result.push(parts[i].replace(/\n/g, "\\n").replace(/\r/g, "\\r"));
             } else {
-              // Inside quotes - escape but preserve content
-              result.push(
-                parts[i]
-                  .replace(/(?<!\\)\n/g, "\\n")
-                  .replace(/(?<!\\)\r/g, "\\r")
-              );
+              // Inside quotes - escape newlines without negative lookbehind (Node 12 compat)
+              let escaped = "";
+              for (let j = 0; j < parts[i].length; j++) {
+                if (parts[i][j] === "\n") {
+                  escaped += "\\n";
+                } else if (parts[i][j] === "\r") {
+                  escaped += "\\r";
+                } else {
+                  escaped += parts[i][j];
+                }
+              }
+              result.push(escaped);
             }
           }
-          
+
           fixed = result.join('"');
           parsed = JSON.parse(fixed) as unknown;
         } catch (fixError3) {
@@ -479,6 +490,26 @@ export async function generateAndDeploy(
       error instanceof Error ? error.message : "Unknown generator error";
     vscode.window.showErrorMessage(
       `SolanaPilot could not generate the program: ${message}`,
+    );
+  }
+}
+
+/// Prompt user to register generated program in the on-chain registry
+async function offerRegistryRegistration(
+  programName: string,
+  description: string,
+  instructionCount: number,
+): Promise<void> {
+  const shouldRegister = await promptToRegisterProgram({
+    programId: "pending_deployment",
+    programName,
+    description,
+    instructionCount,
+  });
+
+  if (shouldRegister) {
+    vscode.window.showInformationMessage(
+      "✨ After your program deploys to devnet, you can register it at: https://solanapilot-registry.vercel.app",
     );
   }
 }
