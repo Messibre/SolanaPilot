@@ -9,6 +9,8 @@ RUN apt-get update \
     build-essential \
     pkg-config \
     libssl-dev \
+    libudev-dev \
+    bzip2 \
     clang \
     lld \
     git \
@@ -32,19 +34,30 @@ RUN rustup default stable \
   && rustup component add rust-src rustfmt clippy \
   && rustup target add wasm32-unknown-unknown
 
-# Install Solana CLI and keygen via Cargo to avoid flaky release.solana.com installs
+# Install Solana CLI (pre-built binary) with retries for network stability
 RUN set -eux; \
-  for i in 1 2 3; do \
-    cargo install --locked --version 1.17.0 solana-cli solana-keygen && break; \
-    echo "Cargo install failed, retry $i"; \
+  SOLANA_VERSION="1.17.0"; \
+  SOLANA_INSTALL="/opt/solana"; \
+  mkdir -p "${SOLANA_INSTALL}"; \
+  for i in 1 2 3 4 5; do \
+    curl --ipv4 --tlsv1.2 -sSfL "https://release.solana.com/v${SOLANA_VERSION}/solana-release-x86_64-unknown-linux-gnu.tar.bz2" \
+      -o /tmp/solana.tar.bz2 && break; \
+    echo "Solana download attempt $i failed, waiting 10s..."; \
     sleep 10; \
   done; \
-  command -v solana; \
-  command -v solana-keygen; \
+  if [ ! -f /tmp/solana.tar.bz2 ]; then \
+    echo "Failed to download Solana after 5 attempts"; \
+    exit 1; \
+  fi; \
+  tar jxf /tmp/solana.tar.bz2 -C "${SOLANA_INSTALL}" --strip-components=1; \
+  rm /tmp/solana.tar.bz2; \
+  ln -sf /opt/solana/bin/solana /usr/local/bin/solana; \
+  ln -sf /opt/solana/bin/solana-keygen /usr/local/bin/solana-keygen; \
   solana --version
+ENV PATH="/opt/solana/bin:${PATH}"
 
 # Install Anchor CLI
-RUN npm install -g @coral-xyz/anchor-cli
+RUN npm install -g @coral-xyz/anchor-cli@0.30.0
 
 WORKDIR /workspace
 ENTRYPOINT ["/bin/bash", "-lc"]
