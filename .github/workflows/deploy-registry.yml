@@ -56,7 +56,7 @@ jobs:
               solana config set --url https://api.devnet.solana.com; \
               mkdir -p ~/.config/solana; \
               solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase; \
-              echo DEPLOYER_KEY=$(solana address) > /tmp/deployer_addr; \
+              solana address > /workspace/.deployer_addr || true; \
               cd programs/registry; \
               anchor build --program-name solanapilot_registry; \
               anchor deploy --program-name solanapilot_registry --provider.cluster devnet || true; \
@@ -65,19 +65,20 @@ jobs:
 
       - name: Capture deployer address
         run: |
-          if [ -f /tmp/deployer_addr ]; then
-            DEPL=$(cat /tmp/deployer_addr); echo "DEPLOYER_KEY=$DEPL" >> $GITHUB_ENV
+          if [ -f .deployer_addr ]; then
+            DEPL=$(cat .deployer_addr); echo "DEPLOYER_KEY=$DEPL" >> $GITHUB_ENV
           fi
 
-      - name: Verify Deployment
+      - name: Verify Deployment (inside container)
         run: |
-          # Wait a moment for the transaction to settle
-          sleep 3
-
-          # Try to fetch the program
-          PROGRAM_ID="Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
-          echo "Checking program at: $PROGRAM_ID"
-          solana program show $PROGRAM_ID --url devnet || echo "Program not yet visible"
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE":/workspace \
+            -w /workspace \
+            solanapilot-ci:latest /bin/bash -lc "set -euo pipefail; \
+              PROGRAM_ID=\"Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs\"; \
+              echo \"Checking program at: $PROGRAM_ID\"; \
+              solana program show $PROGRAM_ID --url devnet || echo \"Program not yet visible\"; \
+            "
 
       - name: Output Results
         run: |

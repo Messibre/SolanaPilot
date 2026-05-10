@@ -29,26 +29,25 @@ export default function Home() {
     const fetchPrograms = async () => {
       try {
         setLoading(true);
-
-        // Mock data for now — replace with real fetch when registry is deployed
-        const mockPrograms: ProgramEntry[] = [
-          {
-            publicKey: "registered-1",
-            programId: "YourFirstProgram11111111111111111111111111",
-            programName: "Voting Program",
-            description: "A decentralized voting program for on-chain polls",
-            instructionCount: 3,
-            creator: "YourWalletAddress111111111111111111111111",
-            registeredAt: Math.floor(Date.now() / 1000),
-            lastUpdated: Math.floor(Date.now() / 1000),
-            generatorVersion: "1.0.0",
-            deploymentCount: 1,
-          },
-        ];
+        const res = await fetch("/api/programs", { cache: "no-store" });
+        const data = (await res.json()) as {
+          programs?: ProgramEntry[];
+          error?: string;
+        };
 
         if (!mounted) return;
-        setPrograms(mockPrograms);
-        setError(null);
+
+        if (!res.ok) {
+          setPrograms([]);
+          setError(
+            data.error ||
+              "Failed to load registry from devnet. Please try again.",
+          );
+          return;
+        }
+
+        setPrograms(Array.isArray(data.programs) ? data.programs : []);
+        setError(data.error ?? null);
       } catch (err) {
         console.error("Failed to fetch programs:", err);
         if (!mounted) return;

@@ -24,7 +24,7 @@ Every generated program gets registered on Solana:
 - **Two core instructions:** `register_program`, `log_deployment`
 - **PDAs for deterministic account derivation**
 
-**Program ID (Devnet):** `SolanaPilot1111111111111111111111111111111`
+**Program ID (Devnet):** `Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs`
 
 ### 3️⃣ Web Explorer
 
