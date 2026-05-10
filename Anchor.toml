@@ -5,14 +5,13 @@ anchor_version = "0.30.0"
 solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
 
 [programs.localnet]
-solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
-
-[registry]
-url = "https://anchor.projectserum.com"
+solanapilot_registry = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha --require ts-node/register tests/**/*.ts"
+build = "anchor build --program-name solanapilot_registry"
+deploy-devnet = "anchor deploy --program-name solanapilot_registry"
+test = "cargo test -- --nocapture"

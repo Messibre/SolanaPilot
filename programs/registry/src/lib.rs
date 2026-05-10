@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::bpf_loader_upgradeable;
 
 declare_id!("Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs");
 
@@ -363,5 +362,22 @@ mod tests {
         assert!(!is_valid_program_name("my-program"));    // hyphen not allowed
         assert!(!is_valid_program_name("my program"));    // space not allowed
         assert!(!is_valid_program_name("_program"));      // starts with underscore
+    }
+
+    #[test]
+    fn test_program_entry_space() {
+        let expected: usize = 32
+            + (4 + 50)
+            + (4 + 200)
+            + 1
+            + 32
+            + 8
+            + 8
+            + (4 + 20)
+            + 8
+            + 1;
+
+        assert_eq!(ProgramEntry::INIT_SPACE, expected);
+        assert_eq!(8 + ProgramEntry::INIT_SPACE, 8 + expected);
     }
 }

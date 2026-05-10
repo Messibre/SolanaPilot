@@ -1,5 +1,13 @@
 name: Deploy Registry Program to Devnet
 
+# === REQUIRED GITHUB SECRETS ===
+# DEPLOYER_KEYPAIR  : base64 of ~/.config/solana/id.json (devnet funded wallet)
+# PROGRAM_KEYPAIR   : base64 of target/deploy/solanapilot_registry-keypair.json
+#
+# To generate:
+#   base64 -w0 ~/.config/solana/id.json > deployer.b64
+#   base64 -w0 target/deploy/solanapilot_registry-keypair.json > program.b64
+
 on:
   push:
     branches:
@@ -14,6 +22,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -22,101 +31,138 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pkg-config openssl libssl-dev
+          sudo apt-get install -y pkg-config openssl libssl-dev curl build-essential
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Install Anchor CLI
-        run: npm install -g @coral-xyz/anchor-cli
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-
-      - name: Build CI Docker image
+      - name: Install Solana CLI
         run: |
-          docker build -t solanapilot-ci:latest -f ci/Dockerfile .
+          set -euo pipefail
+          for i in 1 2 3; do
+            if curl --ipv4 --tlsv1.2 -sSfL https://release.solana.com/v1.17.0/install | sh; then
+              break
+            fi
+            echo "Solana install failed (attempt $i), retrying..."
+            sleep $((i * 5))
+          done
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          command -v solana
+          solana --version
 
-      - name: Run build and deploy inside container
+      - name: Install Anchor CLI via AVM
         run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE":/workspace \
-            -w /workspace \
-            solanapilot-ci:latest /bin/bash -lc "set -euo pipefail; \
-              export HOME=/root; \
-              command -v solana; \
-              solana --version; \
-              anchor --version; \
-              solana config set --url https://api.devnet.solana.com; \
-              mkdir -p ~/.config/solana; \
-              solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase; \
-              DEPLOYER_KEY=$(solana address); \
-              echo \"$DEPLOYER_KEY\" > /workspace/.deployer_addr; \
-              echo \"Deployer inside container: $DEPLOYER_KEY\"; \
-              anchor build --program-name solanapilot_registry; \
-              anchor deploy --program-name solanapilot_registry --provider.cluster devnet; \
-              echo \"Deployment attempted\"; \
-            "
+          set -euo pipefail
+          cargo install --git https://github.com/coral-xyz/anchor avm --locked
+          avm install 0.30.0
+          avm use 0.30.0
+          echo "$HOME/.avm/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.avm/bin:$PATH"
+          anchor --version
 
-      - name: Capture deployer address
+      - name: Configure deployment keypairs from secrets
         run: |
-          if [ -f .deployer_addr ]; then
-            DEPL=$(cat .deployer_addr)
-            echo "DEPLOYER_KEY=$DEPL" >> $GITHUB_ENV
-            echo "Captured deployer: $DEPL"
-          else
-            echo "DEPLOYER_KEY=unknown" >> $GITHUB_ENV
-            echo "No .deployer_addr file found"
+          set -euo pipefail
+          mkdir -p ~/.config/solana
+          mkdir -p target/deploy
+
+          echo "${{ secrets.DEPLOYER_KEYPAIR }}" | base64 -d > ~/.config/solana/id.json
+          chmod 600 ~/.config/solana/id.json
+
+          echo "${{ secrets.PROGRAM_KEYPAIR }}" | base64 -d > target/deploy/solanapilot_registry-keypair.json
+          chmod 600 target/deploy/solanapilot_registry-keypair.json
+
+      - name: Get deploy identities
+        id: identities
+        run: |
+          set -euo pipefail
+          DEPLOYER_PUBKEY=$(solana-keygen pubkey ~/.config/solana/id.json)
+          PROGRAM_ID=$(solana-keygen pubkey target/deploy/solanapilot_registry-keypair.json)
+
+          echo "deployer_pubkey=$DEPLOYER_PUBKEY" >> $GITHUB_OUTPUT
+          echo "program_id=$PROGRAM_ID" >> $GITHUB_OUTPUT
+
+      - name: Build and Deploy Registry Program
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.avm/bin:$PATH"
+          solana config set --url devnet --keypair ~/.config/solana/id.json
+
+          echo "💰 Requesting devnet SOL..."
+          for i in 1 2 3 4 5; do
+            solana airdrop 2 --url devnet && break
+            echo "Airdrop attempt $i failed. Waiting 15 seconds..."
+            sleep 15
+          done
+
+          BALANCE=$(solana balance --url devnet | awk '{print $1}')
+          echo "Current balance: ${BALANCE:-0} SOL"
+          if [ -z "${BALANCE:-}" ] || [ "$BALANCE" = "0" ] || [ "$BALANCE" = "0.0" ]; then
+            echo "::error::Failed to get SOL. Deployment cannot proceed."
+            exit 1
           fi
 
-      - name: Verify Deployment (inside container)
+          anchor build --program-name solanapilot_registry || {
+            echo "::error::Build failed"
+            exit 1
+          }
+
+          anchor deploy --program-name solanapilot_registry || {
+            echo "::error::Deploy failed. Check wallet balance and keypair alignment."
+            exit 1
+          }
+
+      - name: Verify deployment
         run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE":/workspace \
-            -w /workspace \
-            solanapilot-ci:latest /bin/bash -lc "set -euo pipefail; \
-              PROGRAM_ID=\"Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs\"; \
-              echo \"Checking program at: $PROGRAM_ID\"; \
-              solana program show $PROGRAM_ID --url devnet || echo \"Program not yet visible\"; \
-            "
+          set -euo pipefail
+          PROGRAM_ID="${{ steps.identities.outputs.program_id }}"
+          echo "Checking program at: $PROGRAM_ID"
+          solana program show "$PROGRAM_ID" --url devnet
 
       - name: Output Results
         run: |
+          set -euo pipefail
+          PROGRAM_ID="${{ steps.identities.outputs.program_id }}"
+          DEPLOYER="${{ steps.identities.outputs.deployer_pubkey }}"
           echo "=== Deployment Summary ==="
-          echo "Registry Program ID: Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
-          echo "Deployer Address: ${{ env.DEPLOYER_KEY }}"
+          echo "Registry Program ID: $PROGRAM_ID"
+          echo "Deployer Address: $DEPLOYER"
           echo "Network: devnet"
           echo "Cluster URL: https://api.devnet.solana.com"
-          echo ""
-          echo "To verify on-chain:"
-          echo "  solana program show Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs --url devnet"
+          echo "Program Explorer: https://explorer.solana.com/address/$PROGRAM_ID?cluster=devnet"
+          echo "Deployer Explorer: https://explorer.solana.com/address/$DEPLOYER?cluster=devnet"
 
       - name: Comment on PR (if pull request)
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
+            const programId = '${{ steps.identities.outputs.program_id }}';
+            const deployer = '${{ steps.identities.outputs.deployer_pubkey }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `✅ **Registry Program Deployment Workflow Triggered**\n\n` +
-                    `**Program ID:** \`Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs\`\n` +
+              body: `✅ **Registry Program Deployment Succeeded**\n\n` +
+                    `**Program ID:** \`${programId}\`\n` +
+                    `**Deployer:** \`${deployer}\`\n` +
                     `**Network:** Devnet\n` +
+                    `**Program Explorer:** https://explorer.solana.com/address/${programId}?cluster=devnet\n` +
                     `**Workflow:** [View Run](${context.server_url}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
-            })
+            });
 
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: anchor-build-output
-          path: target/sbf-solana-solana/release/
+          path: |
+            target/deploy/
+            target/idl/
           retention-days: 7
