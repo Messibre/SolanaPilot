@@ -1,4 +1,4 @@
-import { AnchorProvider, Idl, Program, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import fs from "fs";
 import { NextResponse } from "next/server";
@@ -71,13 +71,24 @@ export async function GET() {
 
   try {
     const connection = new Connection(rpc, "confirmed");
-    const wallet = new Wallet(Keypair.generate());
+    const kp = Keypair.generate();
+    const wallet = {
+      publicKey: kp.publicKey,
+      signTransaction: async (tx: any) => {
+        tx.partialSign(kp);
+        return tx;
+      },
+      signAllTransactions: async (txs: any[]) => {
+        for (const tx of txs) tx.partialSign(kp);
+        return txs;
+      },
+    };
     const provider = new AnchorProvider(connection, wallet, {
       commitment: "confirmed",
     });
     const idl = loadIdl();
     const program = new Program(idl, provider);
-    const rows = await program.account.programEntry.all();
+    const rows = await (program.account as any).programEntry.all();
 
     const programs = rows.map(({ publicKey, account }) => {
       const a = account as ProgramEntryAccount;
