@@ -32,13 +32,13 @@ jobs:
       - name: Install Anchor CLI
         run: npm install -g @coral-xyz/anchor-cli
 
-      - name: Configure Anchor to use Solana CLI from PATH
-        run: |
-          cargo install --git https://github.com/solana-labs/solana.git --rev e4fef1de5a01e16e7e0a5aa68ede1a3f3cf1e05 --locked solana-cli
-          solana --version
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
+      
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '18'
 
       - name: Install Solana CLI
         run: |
