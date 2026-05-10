@@ -29,3 +29,11 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(167, 139, 250, 0.28);
+}

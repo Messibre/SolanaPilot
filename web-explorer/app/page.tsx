@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { ProgramEntry } from "../lib/mockRegistry";
 import { MOCK_PROGRAMS } from "../lib/mockRegistry";
 import styles from "./page.module.css";
@@ -10,6 +10,8 @@ const REGISTRY_PROGRAM_ID =
 
 const USE_LIVE_REGISTRY =
   process.env.NEXT_PUBLIC_REGISTRY_LIVE === "true";
+
+type SortKey = "recent" | "deployments" | "instructions" | "name";
 
 function IconExternal({ className }: { className?: string }) {
   return (
@@ -57,6 +59,10 @@ export default function Home() {
   const [programs, setPrograms] = useState<ProgramEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("recent");
+  const [online, setOnline] = useState(true);
+  const mainRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -70,10 +76,17 @@ export default function Home() {
       setLoading(false);
     };
 
-    const loadLive = async () => {
+    const loadLive = async (opts?: { signal?: AbortSignal }) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      const signal = opts?.signal ?? controller.signal;
+
       try {
         setLoading(true);
-        const res = await fetch("/api/programs", { cache: "no-store" });
+        const res = await fetch("/api/programs", {
+          cache: "no-store",
+          signal,
+        });
         const data = (await res.json()) as {
           programs?: ProgramEntry[];
           error?: string;
@@ -93,27 +106,46 @@ export default function Home() {
         setPrograms(Array.isArray(data.programs) ? data.programs : []);
         setError(data.error ?? null);
       } catch (err) {
-        console.error("Failed to fetch programs:", err);
         if (!mounted) return;
-        setError("Failed to load registry. Please try again.");
+        const msg =
+          err instanceof DOMException && err.name === "AbortError"
+            ? "Request timed out. Please try again."
+            : "Failed to load registry. Please try again.";
+        setError(msg);
         setPrograms([]);
       } finally {
+        clearTimeout(timeout);
         if (mounted) setLoading(false);
       }
     };
 
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     if (USE_LIVE_REGISTRY) {
-      void loadLive();
-      const interval = setInterval(() => void loadLive(), 30000);
+      const controller = new AbortController();
+      void loadLive({ signal: controller.signal });
+      const interval = setInterval(
+        () => void loadLive({ signal: controller.signal }),
+        30000,
+      );
       return () => {
         mounted = false;
+        controller.abort();
         clearInterval(interval);
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
       };
     }
 
     void loadMock();
     return () => {
       mounted = false;
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -128,6 +160,33 @@ export default function Home() {
     );
     return { deployments, instructions };
   }, [programs]);
+
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+
+  const visiblePrograms = useMemo(() => {
+    const filtered = deferredQuery
+      ? programs.filter((p) => {
+          const hay = `${p.programName} ${p.description} ${p.creator} ${p.programId}`.toLowerCase();
+          return hay.includes(deferredQuery);
+        })
+      : programs.slice();
+
+    filtered.sort((a, b) => {
+      switch (sortKey) {
+        case "deployments":
+          return (b.deploymentCount ?? 0) - (a.deploymentCount ?? 0);
+        case "instructions":
+          return (b.instructionCount ?? 0) - (a.instructionCount ?? 0);
+        case "name":
+          return a.programName.localeCompare(b.programName);
+        case "recent":
+        default:
+          return (b.lastUpdated ?? 0) - (a.lastUpdated ?? 0);
+      }
+    });
+
+    return filtered;
+  }, [deferredQuery, programs, sortKey]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString("en-US", {
@@ -148,17 +207,6 @@ export default function Home() {
     <div className={styles.root}>
       <div className={styles.ambient} aria-hidden />
       <div className={styles.container}>
-        {!USE_LIVE_REGISTRY && (
-          <div className={styles.demoBanner} role="status">
-            <span className={styles.demoDot} />
-            <span>
-              <strong>Demo dataset</strong> — five sample programs. For live
-              devnet data, set{" "}
-              <code className={styles.demoCode}>NEXT_PUBLIC_REGISTRY_LIVE=true</code>.
-            </span>
-          </div>
-        )}
-
         <header className={styles.header}>
           <div className={styles.headerLead}>
             <p className={styles.eyebrow}>SolanaPilot</p>
@@ -184,7 +232,66 @@ export default function Home() {
           </div>
         </header>
 
-        <main className={styles.main}>
+        <main
+          ref={(el) => {
+            mainRef.current = el;
+          }}
+          id="main-content"
+          tabIndex={-1}
+          className={styles.main}
+        >
+          <div className={styles.controls} role="search">
+            <div className={styles.searchWrap}>
+              <label className={styles.srOnly} htmlFor="registry-search">
+                Search registry
+              </label>
+              <input
+                id="registry-search"
+                className={styles.searchInput}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search name, description, creator, or program id…"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+
+            <div className={styles.sortWrap}>
+              <label className={styles.srOnly} htmlFor="registry-sort">
+                Sort results
+              </label>
+              <select
+                id="registry-sort"
+                className={styles.sortSelect}
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+              >
+                <option value="recent">Most recent</option>
+                <option value="deployments">Most deployments</option>
+                <option value="instructions">Most instructions</option>
+                <option value="name">Name (A–Z)</option>
+              </select>
+            </div>
+
+            {USE_LIVE_REGISTRY && (
+              <div
+                className={`${styles.netPill} ${
+                  online ? styles.netOk : styles.netBad
+                }`}
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {online ? "Online" : "Offline"}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.resultsMeta} aria-live="polite" aria-atomic="true">
+            {loading
+              ? "Loading programs…"
+              : `${visiblePrograms.length} result${visiblePrograms.length === 1 ? "" : "s"}`}
+          </div>
+
           {loading && (
             <div className={styles.loading}>
               <div className={styles.loader} />
@@ -194,23 +301,46 @@ export default function Home() {
 
           {error && !loading && (
             <div className={styles.errorBox} role="alert">
-              {error}
+              <div className={styles.errorText}>{error}</div>
+              {USE_LIVE_REGISTRY && (
+                <button
+                  type="button"
+                  className={styles.retryBtn}
+                  onClick={() => {
+                    setError(null);
+                    setLoading(true);
+                    void fetch("/api/programs", { cache: "no-store" })
+                      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+                      .then(({ ok, j }) => {
+                        if (!ok) throw new Error(j?.error || "Failed to load");
+                        setPrograms(Array.isArray(j?.programs) ? j.programs : []);
+                      })
+                      .catch(() => setError("Failed to load registry. Please try again."))
+                      .finally(() => setLoading(false));
+                  }}
+                >
+                  Retry
+                </button>
+              )}
             </div>
           )}
 
-          {!loading && programs.length === 0 && !error && (
+          {!loading && visiblePrograms.length === 0 && !error && (
             <div className={styles.empty}>
-              <p className={styles.emptyTitle}>No programs yet</p>
+              <p className={styles.emptyTitle}>
+                {query.trim() ? "No matches" : "No programs yet"}
+              </p>
               <p className={styles.emptyHint}>
-                Generate and register a program with the SolanaPilot extension
-                to see it listed here.
+                {query.trim()
+                  ? "Try a different search term, or clear your search."
+                  : "Generate and register a program with the SolanaPilot extension to see it listed here."}
               </p>
             </div>
           )}
 
-          {!loading && programs.length > 0 && (
+          {!loading && visiblePrograms.length > 0 && (
             <ul className={styles.list}>
-              {programs.map((program) => (
+              {visiblePrograms.map((program) => (
                 <li key={program.publicKey} className={styles.card}>
                   <div className={styles.cardTop}>
                     <div className={styles.cardTitleRow}>
