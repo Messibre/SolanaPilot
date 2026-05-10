@@ -48,16 +48,42 @@ export class TerminalRunner {
     return TerminalRunner.instance;
   }
 
+  private getWindowsCmdPath(): string {
+    const systemRoot =
+      process.env.SystemRoot || process.env.WINDIR || "C:\\Windows";
+    return path.join(systemRoot, "System32", "cmd.exe");
+  }
+
+  private getWindowsPowerShellPath(): string {
+    const systemRoot =
+      process.env.SystemRoot || process.env.WINDIR || "C:\\Windows";
+    return path.join(
+      systemRoot,
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    );
+  }
+
   private getOrCreateTerminal(name: string = "SolanaPilot"): vscode.Terminal {
     if (this.terminal) {
       return this.terminal;
     }
 
-    this.terminal = vscode.window.createTerminal({
-      name,
-      iconPath: new vscode.ThemeIcon("rocket"),
-      message: "SolanaPilot terminal",
-    });
+    this.terminal =
+      process.platform === "win32"
+        ? vscode.window.createTerminal({
+            name,
+            shellPath: this.getWindowsCmdPath(),
+            iconPath: new vscode.ThemeIcon("rocket"),
+            message: "SolanaPilot terminal",
+          })
+        : vscode.window.createTerminal({
+            name,
+            iconPath: new vscode.ThemeIcon("rocket"),
+            message: "SolanaPilot terminal",
+          });
 
     return this.terminal;
   }
@@ -98,6 +124,10 @@ export class TerminalRunner {
     return process.platform === "win32"
       ? `Set-Content -Path ${quotedMarker} -Value ${quotedValue}`
       : `echo ${quotedValue} > ${quotedMarker}`;
+  }
+
+  private quoteForCmd(value: string): string {
+    return `"${value.replace(/"/g, '""')}"`;
   }
 
   private getNpmCommand(): string {
@@ -318,11 +348,19 @@ export class TerminalRunner {
     }
 
     this.terminal?.dispose();
-    this.terminal = vscode.window.createTerminal({
-      name: "SolanaPilot Deploy",
-      iconPath: new vscode.ThemeIcon("rocket"),
-      message: "SolanaPilot deployment terminal",
-    });
+    this.terminal =
+      process.platform === "win32"
+        ? vscode.window.createTerminal({
+            name: "SolanaPilot Deploy",
+            shellPath: this.getWindowsCmdPath(),
+            iconPath: new vscode.ThemeIcon("rocket"),
+            message: "SolanaPilot deployment terminal",
+          })
+        : vscode.window.createTerminal({
+            name: "SolanaPilot Deploy",
+            iconPath: new vscode.ThemeIcon("rocket"),
+            message: "SolanaPilot deployment terminal",
+          });
 
     const terminal = this.terminal;
     terminal.show(true);
@@ -337,13 +375,21 @@ export class TerminalRunner {
       tempDir,
       `solanapilot-deploy-${markerId}.output`,
     );
+    const scriptFile = path.join(tempDir, `solanapilot-deploy-${markerId}.ps1`);
     const script = this.buildDeployScript(
       workspaceRoot,
       markerFile,
       outputFile,
     );
 
-    terminal.sendText(script, true);
+    fs.writeFileSync(scriptFile, script, "utf8");
+
+    const command =
+      process.platform === "win32"
+        ? `"${this.getWindowsPowerShellPath()}" -NoLogo -NoProfile -ExecutionPolicy Bypass -File ${this.quoteForCmd(scriptFile)}`
+        : `pwsh -NoLogo -NoProfile -File ${this.quoteForShell(scriptFile)}`;
+
+    terminal.sendText(command, true);
 
     await new Promise<void>((resolve) => {
       let checkCount = 0;
@@ -353,7 +399,7 @@ export class TerminalRunner {
         checkCount++;
 
         if (checkCount > maxChecks) {
-          this.cleanupTempFiles(markerFile, outputFile);
+          this.cleanupTempFiles(markerFile, outputFile, scriptFile);
           vscode.window.showWarningMessage(
             "Deployment timed out after 6 minutes. Check the terminal for progress.",
           );
@@ -384,7 +430,7 @@ export class TerminalRunner {
           await this.showAirdropFailedNotification();
         }
 
-        this.cleanupTempFiles(markerFile, outputFile);
+        this.cleanupTempFiles(markerFile, outputFile, scriptFile);
         resolve();
       };
 
@@ -392,13 +438,20 @@ export class TerminalRunner {
     });
   }
 
-  private cleanupTempFiles(markerFile: string, outputFile: string): void {
+  private cleanupTempFiles(
+    markerFile: string,
+    outputFile: string,
+    scriptFile?: string,
+  ): void {
     try {
       if (fs.existsSync(markerFile)) {
         fs.unlinkSync(markerFile);
       }
       if (fs.existsSync(outputFile)) {
         fs.unlinkSync(outputFile);
+      }
+      if (scriptFile && fs.existsSync(scriptFile)) {
+        fs.unlinkSync(scriptFile);
       }
     } catch {
       // Ignore cleanup failures.
