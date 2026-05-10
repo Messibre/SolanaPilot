@@ -7,6 +7,10 @@ export interface WorkspaceFile {
   content: string;
 }
 
+export interface WriteWorkspaceOptions {
+  silent?: boolean;
+}
+
 export function getWorkspaceRoot(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
 }
@@ -45,7 +49,9 @@ export function resolveWorkspacePath(
   relativePath: string,
 ): string {
   if (!isSafeRelativeWorkspacePath(workspaceRoot, relativePath)) {
-    throw new Error(`Refusing to resolve unsafe workspace path: ${relativePath}`);
+    throw new Error(
+      `Refusing to resolve unsafe workspace path: ${relativePath}`,
+    );
   }
 
   return path.resolve(workspaceRoot, path.normalize(relativePath));
@@ -66,6 +72,7 @@ export async function openFileInEditor(absolutePath: string): Promise<void> {
 
 export async function writeFilesToWorkspace(
   files: WorkspaceFile[],
+  options: WriteWorkspaceOptions = {},
 ): Promise<boolean> {
   try {
     const workspaceRoot = getWorkspaceRoot();
@@ -110,9 +117,11 @@ export async function writeFilesToWorkspace(
       }
     }
 
-    vscode.window.showInformationMessage(
-      `✅ Generated ${files.length} files for your Solana program`,
-    );
+    if (!options.silent) {
+      vscode.window.showInformationMessage(
+        `✅ Generated ${files.length} files for your Solana program`,
+      );
+    }
     return true;
   } catch (error) {
     const message =
