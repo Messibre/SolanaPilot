@@ -1,0 +1,18 @@
+[toolchain]
+anchor_version = "0.30.0"
+
+[programs.devnet]
+solanapilot_registry = "SolanaPilot1111111111111111111111111111111"
+
+[programs.localnet]
+solanapilot_registry = "SolanaPilot1111111111111111111111111111111"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha --require ts-node/register tests/**/*.ts"
