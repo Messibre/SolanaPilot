@@ -26,13 +26,27 @@ type ChatWebviewMessage =
   | { type: "rerun"; text: string; mode: ChatMode }
   | { type: "showDraft"; text: string }
   | { type: "insertCode"; code: string }
+  | {
+      type: "workspacePreviewChoice";
+      previewId: string;
+      choice: "write" | "cancel";
+    }
+  | { type: "workspacePreviewDiff"; previewId: string }
   | { type: "clearHistory" };
 
 interface WebviewOutgoingMessage {
-  type: "thinking" | "response" | "error" | "insertCode" | "modeSuggestion";
+  type:
+    | "thinking"
+    | "response"
+    | "error"
+    | "insertCode"
+    | "modeSuggestion"
+    | "workspacePreview";
   text?: string;
   originalPrompt?: string;
   mode?: ChatMode;
+  previewId?: string;
+  files?: WorkspaceFile[];
 }
 
 interface WorkspaceUpdateResponse {
@@ -46,6 +60,16 @@ interface WorkspaceUpdateResponse {
 export class ChatPanel {
   private panel: vscode.WebviewPanel;
   private conversationHistory: ConversationEntry[] = [];
+  private pendingWorkspacePreviewError: string | undefined;
+  private pendingWorkspacePreview:
+    | {
+        previewId: string;
+        workspaceRoot: string;
+        files: WorkspaceFile[];
+        parsed: WorkspaceUpdateResponse;
+        resolve: (confirmed: boolean) => void;
+      }
+    | undefined;
 
   private static instance: ChatPanel | undefined;
 
@@ -110,6 +134,15 @@ export class ChatPanel {
             case "insertCode":
               await this.handleInsertCodeMessage(message.code);
               break;
+            case "workspacePreviewChoice":
+              await this.handleWorkspacePreviewChoice(
+                message.previewId,
+                message.choice,
+              );
+              break;
+            case "workspacePreviewDiff":
+              await this.handleWorkspacePreviewDiff(message.previewId);
+              break;
             case "clearHistory":
               this.conversationHistory = [];
               break;
@@ -124,10 +157,7 @@ export class ChatPanel {
     );
   }
 
-  private getWebviewHtml(
-    webview: vscode.Webview,
-    htmlPath: string,
-  ): string {
+  private getWebviewHtml(webview: vscode.Webview, htmlPath: string): string {
     const rawHtml = fs.readFileSync(htmlPath, "utf8");
     const nonce = this.createNonce();
 
@@ -309,11 +339,17 @@ export class ChatPanel {
         throw new Error("Agent mode did not return any files to write.");
       }
 
-      const confirmed = await this.previewWorkspaceChanges(
+      const confirmed = await this.requestWorkspacePreview(
         workspaceRoot,
-        parsed.files,
+        parsed,
       );
       if (!confirmed) {
+        if (this.pendingWorkspacePreviewError) {
+          const errorMessage = this.pendingWorkspacePreviewError;
+          this.pendingWorkspacePreviewError = undefined;
+          throw new Error(errorMessage);
+        }
+
         const cancelled =
           "Agent mode preview cancelled before writing any files.";
         this.pushConversationEntry({
@@ -327,16 +363,6 @@ export class ChatPanel {
           mode: "agent",
         });
         return;
-      }
-
-      const writeSucceeded = await writeFilesToWorkspace(parsed.files);
-      if (!writeSucceeded) {
-        throw new Error("SolanaPilot could not write the requested files.");
-      }
-
-      if (parsed.openFile) {
-        const safeOpenPath = resolveWorkspacePath(workspaceRoot, parsed.openFile);
-        await openFileInEditor(safeOpenPath);
       }
 
       const summaryLines = [
@@ -501,6 +527,8 @@ export class ChatPanel {
     return [
       "You are SolanaPilot in Agent mode inside VS Code.",
       "The user wants workspace file changes for a Solana project.",
+      "When the request is broad, create or update the most relevant files instead of only explaining the plan.",
+      "If the user asks to build an app, scaffold a minimal working workspace with the main source files needed for that app.",
       "Return ONLY a valid JSON object with this exact schema:",
       "{",
       '  "type": "workspace_update",',
@@ -523,6 +551,175 @@ export class ChatPanel {
     ].join("\n");
   }
 
+  private extractJsonObject(raw: string): string {
+    const cleaned = raw.trim();
+    const startIndex = cleaned.indexOf("{");
+    if (startIndex === -1) {
+      throw new Error("Agent mode did not return valid JSON.");
+    }
+
+    let inString = false;
+    let escaped = false;
+    let depth = 0;
+
+    for (let index = startIndex; index < cleaned.length; index++) {
+      const char = cleaned[index];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+
+        if (char === '"') {
+          inString = false;
+        }
+
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === "{") {
+        depth += 1;
+        continue;
+      }
+
+      if (char === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          return cleaned.slice(startIndex, index + 1);
+        }
+      }
+    }
+
+    return cleaned.slice(startIndex);
+  }
+
+  private repairJsonText(rawJson: string): string {
+    let inString = false;
+    let escaped = false;
+    let repaired = "";
+
+    for (let index = 0; index < rawJson.length; index++) {
+      const char = rawJson[index];
+
+      if (inString) {
+        if (escaped) {
+          repaired += char;
+          escaped = false;
+          continue;
+        }
+
+        if (char === "\\") {
+          repaired += char;
+          escaped = true;
+          continue;
+        }
+
+        if (char === '"') {
+          repaired += char;
+          inString = false;
+          continue;
+        }
+
+        if (char === "\n") {
+          repaired += "\\n";
+          continue;
+        }
+
+        if (char === "\r") {
+          repaired += "\\r";
+          continue;
+        }
+
+        if (char === "\t") {
+          repaired += "\\t";
+          continue;
+        }
+
+        repaired += char;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        repaired += char;
+        continue;
+      }
+
+      repaired += char;
+    }
+
+    return repaired;
+  }
+
+  private closeIncompleteJsonObject(rawJson: string): string {
+    let inString = false;
+    let escaped = false;
+    let openBraces = 0;
+    let completed = "";
+
+    for (let index = 0; index < rawJson.length; index++) {
+      const char = rawJson[index];
+
+      if (inString) {
+        completed += char;
+
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+
+        if (char === "\\") {
+          escaped = true;
+          continue;
+        }
+
+        if (char === '"') {
+          inString = false;
+        }
+
+        continue;
+      }
+
+      completed += char;
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === "{") {
+        openBraces += 1;
+        continue;
+      }
+
+      if (char === "}") {
+        openBraces = Math.max(0, openBraces - 1);
+      }
+    }
+
+    if (inString) {
+      completed += '"';
+    }
+
+    while (openBraces > 0) {
+      completed += "}";
+      openBraces -= 1;
+    }
+
+    return completed;
+  }
+
   private parseWorkspaceUpdateResponse(raw: string): WorkspaceUpdateResponse {
     let cleaned = raw.trim();
     if (cleaned.startsWith("```json")) {
@@ -535,35 +732,20 @@ export class ChatPanel {
       cleaned = cleaned.slice(0, -3);
     }
 
-    cleaned = cleaned.trim();
-    const jsonStart = cleaned.indexOf("{");
-    const jsonEnd = cleaned.lastIndexOf("}");
-    if (jsonStart === -1 || jsonEnd === -1) {
-      throw new Error("Agent mode did not return valid JSON.");
-    }
-
-    const slice = cleaned.slice(jsonStart, jsonEnd + 1);
+    const slice = this.extractJsonObject(cleaned);
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(slice) as unknown;
     } catch (err) {
-      // Try to repair common issue: AI included raw newlines in file content strings.
+      // Try to repair common issue: AI included raw control characters in string values.
       try {
-        const repaired = slice.replace(
-          /"content"\s*:\s*"([\s\S]*?)"/g,
-          (match) => {
-            return match
-              .replace(/\n/g, "\\n")
-              .replace(/\r/g, "\\r")
-              .replace(/\t/g, "\\t");
-          },
-        );
-
-        parsed = JSON.parse(repaired) as unknown;
+        const repaired = this.repairJsonText(slice);
+        const completed = this.closeIncompleteJsonObject(repaired);
+        parsed = JSON.parse(completed) as unknown;
       } catch (err2) {
         throw new Error(
-          "Agent mode returned malformed JSON and automatic repair failed.",
+          `Agent mode returned malformed JSON and automatic repair failed. ${err instanceof Error ? err.message : String(err)}; ${err2 instanceof Error ? err2.message : String(err2)}`,
         );
       }
     }
@@ -656,82 +838,142 @@ export class ChatPanel {
     };
   }
 
-  private async previewWorkspaceChanges(
+  private async requestWorkspacePreview(
     workspaceRoot: string,
-    files: WorkspaceFile[],
+    parsed: WorkspaceUpdateResponse,
   ): Promise<boolean> {
-    const previewChoice = await vscode.window.showInformationMessage(
-      `Agent mode prepared ${files.length} file change(s). Preview the diff before writing?`,
-      "Preview Diff",
-      "Write Files",
-      "Cancel",
-    );
-
-    if (previewChoice === "Cancel" || !previewChoice) {
-      return false;
+    if (this.pendingWorkspacePreview) {
+      this.pendingWorkspacePreview.resolve(false);
     }
 
-    if (previewChoice === "Preview Diff") {
-      const previewDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), "solanapilot-preview-"),
-      );
-      const maxPreviewFiles = Math.min(files.length, 5);
+    const previewId = this.createNonce();
+    const files = parsed.files ?? [];
 
-      try {
-        for (let index = 0; index < maxPreviewFiles; index++) {
-          const file = files[index];
-          const originalPath = path.resolve(
-            workspaceRoot,
-            path.normalize(file.path),
-          );
-          const originalContent = fs.existsSync(originalPath)
-            ? fs.readFileSync(originalPath, "utf8")
-            : "";
+    this.sendToWebview({
+      type: "workspacePreview",
+      previewId,
+      mode: "agent",
+      text:
+        parsed.summary ||
+        `Agent prepared ${files.length} file change(s). Review them below and choose whether to write them.`,
+      files,
+    });
 
-          const safePreviewName = file.path.replace(/[\\/:*?"<>|]/g, "_");
-          const originalPreviewPath = path.join(
-            previewDir,
-            `${index}-original-${safePreviewName}`,
-          );
-          const updatedPreviewPath = path.join(
-            previewDir,
-            `${index}-updated-${safePreviewName}`,
-          );
+    return new Promise<boolean>((resolve) => {
+      this.pendingWorkspacePreview = {
+        previewId,
+        workspaceRoot,
+        files,
+        parsed,
+        resolve,
+      };
+    });
+  }
 
-          fs.writeFileSync(originalPreviewPath, originalContent, "utf8");
-          fs.writeFileSync(updatedPreviewPath, file.content, "utf8");
+  private async handleWorkspacePreviewChoice(
+    previewId: string,
+    choice: "write" | "cancel",
+  ): Promise<void> {
+    const pending = this.pendingWorkspacePreview;
+    if (!pending || pending.previewId !== previewId) {
+      return;
+    }
 
-          await vscode.commands.executeCommand(
-            "vscode.diff",
-            vscode.Uri.file(originalPreviewPath),
-            vscode.Uri.file(updatedPreviewPath),
-            `SolanaPilot preview: ${file.path}`,
-          );
-        }
+    if (choice === "cancel") {
+      this.pendingWorkspacePreview = undefined;
+      this.pendingWorkspacePreviewError = undefined;
+      pending.resolve(false);
+      return;
+    }
 
-        if (files.length > maxPreviewFiles) {
-          void vscode.window.showInformationMessage(
-            `Previewed the first ${maxPreviewFiles} file(s). ${files.length - maxPreviewFiles} additional file(s) will be written if you confirm.`,
-          );
-        }
-      } finally {
-        setTimeout(() => {
-          try {
-            fs.rmSync(previewDir, { recursive: true, force: true });
-          } catch {
-            // Ignore preview cleanup failures.
-          }
-        }, 10_000);
+    try {
+      const writeSucceeded = await writeFilesToWorkspace(pending.files, {
+        silent: true,
+      });
+      if (!writeSucceeded) {
+        throw new Error("SolanaPilot could not write the requested files.");
       }
+
+      if (pending.parsed.openFile) {
+        const safeOpenPath = resolveWorkspacePath(
+          pending.workspaceRoot,
+          pending.parsed.openFile,
+        );
+        await openFileInEditor(safeOpenPath);
+      }
+
+      this.pendingWorkspacePreview = undefined;
+      this.pendingWorkspacePreviewError = undefined;
+      pending.resolve(true);
+    } catch (error) {
+      this.pendingWorkspacePreview = undefined;
+      this.pendingWorkspacePreviewError =
+        error instanceof Error
+          ? error.message
+          : "Failed to write workspace files.";
+      pending.resolve(false);
+      const message = this.pendingWorkspacePreviewError;
+      this.sendToWebview({ type: "error", text: message });
+    }
+  }
+
+  private async handleWorkspacePreviewDiff(previewId: string): Promise<void> {
+    const pending = this.pendingWorkspacePreview;
+    if (!pending || pending.previewId !== previewId) {
+      return;
     }
 
-    const finalChoice = await vscode.window.showInformationMessage(
-      "Write the reviewed Agent changes to the workspace now?",
-      "Write Files",
-      "Cancel",
+    const previewDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "solanapilot-preview-"),
     );
+    const maxPreviewFiles = Math.min(pending.files.length, 5);
 
-    return finalChoice === "Write Files";
+    try {
+      for (let index = 0; index < maxPreviewFiles; index++) {
+        const file = pending.files[index];
+        const originalPath = path.resolve(
+          pending.workspaceRoot,
+          path.normalize(file.path),
+        );
+        const originalContent = fs.existsSync(originalPath)
+          ? fs.readFileSync(originalPath, "utf8")
+          : "";
+
+        const safePreviewName = file.path.replace(/[\\/:*?"<>|]/g, "_");
+        const originalPreviewPath = path.join(
+          previewDir,
+          `${index}-original-${safePreviewName}`,
+        );
+        const updatedPreviewPath = path.join(
+          previewDir,
+          `${index}-updated-${safePreviewName}`,
+        );
+
+        fs.writeFileSync(originalPreviewPath, originalContent, "utf8");
+        fs.writeFileSync(updatedPreviewPath, file.content, "utf8");
+
+        await vscode.commands.executeCommand(
+          "vscode.diff",
+          vscode.Uri.file(originalPreviewPath),
+          vscode.Uri.file(updatedPreviewPath),
+          `SolanaPilot preview: ${file.path}`,
+        );
+      }
+
+      if (pending.files.length > maxPreviewFiles) {
+        void vscode.window.showInformationMessage(
+          `Previewed the first ${maxPreviewFiles} file(s). ${pending.files.length - maxPreviewFiles} additional file(s) are ready to write.`,
+        );
+      }
+    } finally {
+      setTimeout(() => {
+        try {
+          fs.rmSync(previewDir, { recursive: true, force: true });
+        } catch {
+          // Ignore preview cleanup failures.
+        }
+      }, 10_000);
+    }
   }
 
   private pushConversationEntry(entry: ConversationEntry): void {
@@ -759,7 +1001,7 @@ export class ChatPanel {
       /\bcreate\b/,
       /\bwrite\b/,
       /\bscaffold\b/,
-      /\bbuild\b.+\b(program|contract|frontend|test)\b/,
+      /\bbuild\b.+\b(program|contract|frontend|test|app|dapp|project|tool)\b/,
       /\bfix\b/,
       /\bupdate\b/,
       /\bmodify\b/,
@@ -769,6 +1011,7 @@ export class ChatPanel {
       /\brewrite\b/,
       /\bedit\b/,
       /\badd\b.+\b(file|instruction|account|test)\b/,
+      /\bimplement\b/,
     ];
 
     return patterns.some((pattern) => pattern.test(text));
