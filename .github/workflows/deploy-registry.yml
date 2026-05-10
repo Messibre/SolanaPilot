@@ -56,17 +56,23 @@ jobs:
               solana config set --url https://api.devnet.solana.com; \
               mkdir -p ~/.config/solana; \
               solana-keygen new --outfile ~/.config/solana/id.json --force --no-passphrase; \
-              solana address > /workspace/.deployer_addr || true; \
-              cd programs/registry; \
+              DEPLOYER_KEY=$(solana address); \
+              echo \"$DEPLOYER_KEY\" > /workspace/.deployer_addr; \
+              echo \"Deployer inside container: $DEPLOYER_KEY\"; \
               anchor build --program-name solanapilot_registry; \
-              anchor deploy --program-name solanapilot_registry --provider.cluster devnet || true; \
+              anchor deploy --program-name solanapilot_registry --provider.cluster devnet; \
               echo \"Deployment attempted\"; \
             "
 
       - name: Capture deployer address
         run: |
           if [ -f .deployer_addr ]; then
-            DEPL=$(cat .deployer_addr); echo "DEPLOYER_KEY=$DEPL" >> $GITHUB_ENV
+            DEPL=$(cat .deployer_addr)
+            echo "DEPLOYER_KEY=$DEPL" >> $GITHUB_ENV
+            echo "Captured deployer: $DEPL"
+          else
+            echo "DEPLOYER_KEY=unknown" >> $GITHUB_ENV
+            echo "No .deployer_addr file found"
           fi
 
       - name: Verify Deployment (inside container)
