@@ -74,9 +74,9 @@ Live fetch uses:
 
 - `lib/solana.ts`: connection, Anchor program, account fetch/decode
 - `lib/idl.json`: registry IDL used for account decoding
-- `components/registry/registry-explorer.tsx`: UI state, retry, fallback badge
+- `components/registry/registry-explorer.tsx`: UI state, fallback badge, and data source indicator
 
-On fetch errors, the app shows a dismissible warning banner and keeps rendering demo data.
+On fetch errors, the app silently keeps rendering demo data.
 
 ## Demo Flow
 
@@ -84,7 +84,7 @@ On fetch errors, the app shows a dismissible warning banner and keeps rendering 
 2. The client fetches live registry accounts from Solana devnet.
 3. If the fetch succeeds, the explorer shows live entries and marks the source as `Devnet Live`.
 4. If the fetch fails or returns no data, the UI falls back to demo data and shows `Demo Data`.
-5. Users can dismiss the warning banner or retry the fetch without losing the current browsing state.
+5. Users keep the same browsing state while the app switches to demo data when live fetch is unavailable.
 
 ## How It Works
 
@@ -102,6 +102,9 @@ This app can be deployed as a standalone Vercel project:
 2. Add `NEXT_PUBLIC_SOLANA_RPC_URL` in the Vercel environment settings.
 3. Use the default build command: `npm run build`.
 4. Deploy to production or preview as a standard Next.js application.
+5. Do not set the output directory to the repository root; Vercel should build and read `.next` from the `web-explorer` project itself.
+
+If Vercel is looking for `/vercel/path0/.next/...` instead of `/vercel/path0/web-explorer/.next/...`, the project is pointed at the wrong root.
 
 ## Data source indicator
 

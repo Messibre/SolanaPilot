@@ -113,6 +113,7 @@ The web explorer can be deployed to Vercel as a standard Next.js app:
 2. Add `NEXT_PUBLIC_SOLANA_RPC_URL` in Vercel project settings if you want to target a custom RPC endpoint.
 3. Use the default build command from the app package, which is `npm run build`.
 4. Confirm the app has read access to your chosen RPC endpoint from the Vercel runtime.
+5. Leave the output directory on Vercel at the Next.js default; do not point it at the repository root.
 
 If you deploy the explorer separately, keep the root repository for the extension and registry workflow, and treat `web-explorer` as an independent Vercel app.
 

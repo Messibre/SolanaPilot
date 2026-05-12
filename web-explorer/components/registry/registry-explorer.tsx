@@ -7,7 +7,6 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatsBar } from "./stats-bar";
 import { SearchControls, type SortOption } from "./search-controls";
@@ -22,8 +21,6 @@ type DataSource = "mock" | "live" | "loading";
 export function RegistryExplorer() {
   const [programs, setPrograms] = useState<Program[]>(MOCK_PROGRAMS);
   const [dataSource, setDataSource] = useState<DataSource>("mock");
-  const [dataError, setDataError] = useState<string | null>(null);
-  const [showErrorBanner, setShowErrorBanner] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("recent");
 
@@ -31,8 +28,6 @@ export function RegistryExplorer() {
 
   const loadPrograms = useCallback(async () => {
     setDataSource("loading");
-    setDataError(null);
-    setShowErrorBanner(true);
 
     try {
       const entries = await fetchRegistryEntries();
@@ -45,15 +40,9 @@ export function RegistryExplorer() {
 
       setPrograms(MOCK_PROGRAMS);
       setDataSource("mock");
-      setDataError("No programs found on-chain yet. Showing demo data.");
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Unable to reach Solana devnet. Check your internet connection.";
       setPrograms(MOCK_PROGRAMS);
       setDataSource("mock");
-      setDataError(message);
     }
   }, []);
 
@@ -137,40 +126,6 @@ export function RegistryExplorer() {
           Browse programs registered from the VS Code extension on Solana
           devnet.
         </p>
-
-        {dataError && showErrorBanner && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs sm:text-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2 text-amber-200">
-                <AlertCircle
-                  className="mt-0.5 size-4 shrink-0 text-amber-300"
-                  aria-hidden="true"
-                />
-                <div className="space-y-2">
-                  <p>{dataError}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 border-amber-500/40 bg-transparent text-amber-200 hover:bg-amber-500/20"
-                    onClick={() => {
-                      void loadPrograms();
-                    }}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="rounded p-1 text-amber-300 hover:bg-amber-500/20"
-                onClick={() => setShowErrorBanner(false)}
-                aria-label="Dismiss warning"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Stats Bar */}
