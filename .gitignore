@@ -44,6 +44,13 @@ Thumbs.db
 target/
 .anchor/
 .rustflags
+.ci-keypair/
+.ci-program-id
+.ci-deployer
+
+# Web explorer build cache
+web-explorer/.next/
+web-explorer/node_modules/
 
 # Test
 coverage/
