@@ -184,3 +184,4 @@ Failure signatures so far:
 | T-034 | Skills (progressive disclosure) | f59164c | 2026-11-03 11:40 | verify PASS (244 tests) | 1 | DONE: 8 modular skills, SkillLoader, base prompt (>80% token reduction), ADR 0002 |
 | AUDIT | Full checkpoint (tasks 30-34) | f59164c | 2026-11-03 11:42 | root: verify PASS (244 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-035 | Stage: PLAN and GENERATE | 0afbc16 | 2026-11-03 11:57 | verify PASS (255 tests) | 1 | DONE: structured plan & generate stages, pathGuard write containment, size caps, overwrite protection, red-green checked |
+| T-036 | Stage: BUILD and FIX loop | 180b1bd | 2026-11-03 12:08 | verify PASS (264 tests) | 1 | DONE: compiler error parser, surgical patch schema, signature tracking, strategy adaptation, cycle detection cap |

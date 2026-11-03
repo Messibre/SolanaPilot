@@ -228,7 +228,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests with scripted provider for good output, malformed output, path-traversal file names, oversized files.
   - Lesson: 03, 08
 
-- [ ] **T-036 · Stage: BUILD and FIX loop**
+- [x] **T-036 · Stage: BUILD and FIX loop**
   - Needs: T-035, T-030
   - Scope: `src/agent/stages/build.ts`, `fix.ts`, tests
   - Do: run build via `run_check`; parse compiler errors into a compact structured list; FIX asks the model for a **patch** (structured: file, search, replace) — not a full rewrite; apply; rebuild. Max 3 fix rounds; same error signature twice ⇒ change strategy prompt; third ⇒ stop with receipt.
