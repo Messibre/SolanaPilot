@@ -42,3 +42,16 @@ Active and historical blockers encountered during task execution.
 - **Needed from Human**:
   - Run `avm install 0.31.0` and `avm use 0.31.0` (or newer) as specified in `setup.md`.
 - **Affected Tasks**: T-041, T-042, T-043, T-044, T-045, T-046.
+
+### T-050: Rule 7 Scope restriction on deleting `src/chatPanel.ts`
+- **Task ID**: T-050
+- **Attempt**: 1
+- **Tried**: Planned `src/chat/` modularization and deletion of `src/chatPanel.ts` per "old file gone".
+- **Error / Ambiguity**:
+  - `src/extension.ts` line 14 imports `ChatPanel` from `./chatPanel`.
+  - Deleting `src/chatPanel.ts` causes `tsc --noEmit` and `npm run verify` to fail (`Cannot find module './chatPanel'`) unless `src/extension.ts` is updated to `import { ChatPanel } from "./chat"`.
+  - However, `src/extension.ts` is not included in the Scope for T-050 (`Scope: src/chat/, src/chatPanel.ts (delete after), src/sidebarProvider.ts`).
+  - Editing `src/extension.ts` is strictly prohibited by Hard Rule 7 ("Never change files outside the task's Scope. If the task truly requires it, write a blocker").
+- **Needed from Human**:
+  - Add `src/extension.ts` to the Scope of T-050 (or confirm permission to update the single import line in `src/extension.ts`).
+- **Affected Tasks**: T-050, T-051, T-052, T-053, T-054.
