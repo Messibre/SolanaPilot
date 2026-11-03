@@ -66,7 +66,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests cover every category, classification of plain `Error`, `AbortError`, HTTP status codes 400/401/403/429/500/503, and that `userMessage` never contains the cause text.
   - Lesson: 09
 
-- [ ] **T-012 · Redaction**
+- [x] **T-012 · Redaction**
   - Needs: T-011
   - Scope: `src/security/redact.ts`, `src/security/redact.test.ts`
   - Do: `redact(value: unknown): unknown` deep-redacts strings and object keys (api keys, tokens, bearer headers, keypair arrays, long base58 secrets, emails, URLs with credentials). Keep structure and enough shape to debug (e.g. `AIza…[redacted:gemini]`). Handle cycles.
