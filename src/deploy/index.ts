@@ -1,4 +1,8 @@
 /**
- * Deployment runner and devnet guard.
+ * Deploy module for Solana devnet.
+ * Boundary constraint: Zero vscode imports allowed.
  */
-export const DEPLOY_MODULE = "deploy";
+
+export * from "./types";
+export * from "./devnetGuard";
+export * from "./deployRunner";
