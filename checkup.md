@@ -189,3 +189,4 @@ Failure signatures so far:
 | T-038 | Deploy runner refactor (devnet only) | e47a489 | 2026-11-03 12:36 | verify PASS (280 tests) | 1 | DONE: execFile deploy runner, devnetGuard mainnet refusal, balance check, airdrop retry bound, Windows path handling |
 | T-039 | Stage: DEPLOY, REGISTER, wiring, and resume | 43e799d | 2026-11-03 13:23 | verify PASS (304 tests) | 1 | DONE: deployStage with AWAIT_DEPLOY_CONFIRM callback, registerStage with validated schema, registry client, pipelineRunner end-to-end, frontendGenerator structured output |
 | AUDIT | Full checkpoint (tasks 35-39) | d890fe8 | 2026-11-03 13:26 | root: verify PASS (304 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-040 | Contract baseline | 6bb9dec | 2026-11-03 13:42 | verify PASS (304 tests) | 1 | DONE: anchor build baseline recorded, toolchain edition2024 failure documented in BLOCKERS.md |

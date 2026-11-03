@@ -260,7 +260,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 4 — Contracts
 
-- [ ] **T-040 · Contract baseline**
+- [x] **T-040 · Contract baseline**
   - Needs: T-000
   - Scope: `docs/agent/contracts-baseline.md`
   - Do: run `anchor build` on the unchanged program and record result and warnings. If it fails because of the toolchain, write a blocker with the exact error.
