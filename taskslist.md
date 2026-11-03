@@ -126,7 +126,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests show scripted sequence, error injection, and call recording.
   - Lesson: 02
 
-- [ ] **T-022 · Gemini provider**
+- [x] **T-022 · Gemini provider**
   - Needs: T-021
   - Scope: `src/ai/providers/gemini.ts`, `src/ai/providers/gemini.test.ts`, `package.json`, `package-lock.json`
   - Do: implement with `@google/genai` (verify its current API from the installed package types). Remove `@google/generative-ai` only after T-029. Default model is a setting, not a constant. Map SDK errors → typed errors. Tests with an injected fake transport.
