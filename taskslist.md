@@ -112,7 +112,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 2 — Provider layer
 
-- [ ] **T-020 · LLM client interface and gateway**
+- [x] **T-020 · LLM client interface and gateway**
   - Needs: T-013, T-017
   - Scope: `src/ai/types.ts`, `src/ai/gateway.ts`, `src/ai/gateway.test.ts`
   - Do: `LlmClient { id; generate(req): Promise<LlmResult>; healthCheck(): Promise<void> }`, normalized request/response (messages, system, json mode flag, usage tokens). Gateway factory `createClient(config, secrets)`. Wrappers: timeout (`AbortController`), retry with backoff+jitter for retryable categories only, fallback chain (next provider on `provider_timeout`/`provider_rate_limited`/`provider_error`, never on `auth`/`config`), receipt of which provider answered. Missing key ⇒ `config` error **before** any network call.
