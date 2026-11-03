@@ -147,7 +147,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: same test matrix as T-023.
   - Lesson: 02
 
-- [ ] **T-025 · Ollama provider (local)**
+- [x] **T-025 · Ollama provider (local)**
   - Needs: T-021, T-015
   - Scope: `src/ai/providers/ollama.ts`, `…test.ts`
   - Do: `fetch` client for Ollama's chat endpoint, default `http://127.0.0.1:11434`, loopback allowed **only here**. `listModels()` and `healthCheck()` (clear message if Ollama isn't running or the model isn't pulled). Longer default timeout (local models are slow). Warn in result metadata when model output isn't valid JSON so structured layer can adapt.

@@ -169,3 +169,4 @@ Failure signatures so far:
 | T-023 | OpenAI-compatible provider | 9dc0397 | 2026-11-03 09:54 | verify PASS (130 tests) | 1 | DONE: OpenAiCompatibleClient, presets (openai, openrouter, custom), guardedFetch SSRF, key redaction |
 | T-024 | Anthropic provider | 7c38dd9 | 2026-11-03 10:03 | verify PASS (142 tests) | 1 | DONE: AnthropicClient, Messages API, guardedFetch SSRF, refusal handling, error mapping, key redaction |
 | AUDIT | Full checkpoint (tasks 16-24) | 7c38dd9 | 2026-11-03 10:05 | root: verify PASS (142 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-025 | Ollama provider (local) | df84361 | 2026-11-03 10:10 | verify PASS (153 tests) | 1 | DONE: OllamaClient, loopback enforcement, listModels, healthCheck, 120s timeout, jsonMode warnings |
