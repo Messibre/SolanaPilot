@@ -87,7 +87,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests for each case on both POSIX-style and Windows-style inputs; red-green checked.
   - Lesson: 04
 
-- [ ] **T-015 · URL guard (SSRF)**
+- [x] **T-015 · URL guard (SSRF)**
   - Needs: T-011
   - Scope: `src/security/urlGuard.ts`, `src/security/urlGuard.test.ts`
   - Do: `assertSafeUrl(url, {allowedHosts, allowLoopback})` with injected DNS resolver; also `guardedFetch` wrapper that re-validates **every redirect hop** (manual redirect handling, max 3 hops). Block rules from `Agent.md` §10.
