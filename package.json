@@ -116,7 +116,13 @@
       "properties": {
         "solanaPilot.provider": {
           "type": "string",
-          "enum": ["gemini", "anthropic", "openaiCompatible", "ollama", "mock"],
+          "enum": [
+            "gemini",
+            "anthropic",
+            "openaiCompatible",
+            "ollama",
+            "mock"
+          ],
           "default": "gemini",
           "description": "Active AI provider for SolanaPilot"
         },
@@ -127,8 +133,15 @@
         },
         "solanaPilot.fallbackOrder": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["gemini", "anthropic", "openaiCompatible", "ollama"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "gemini",
+            "anthropic",
+            "openaiCompatible",
+            "ollama"
+          ],
           "description": "Ordered fallback list of providers on retryable failure"
         },
         "solanaPilot.timeouts.requestMs": {
@@ -203,7 +216,6 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.0",
     "@google/genai": "^2.32.0",
-    "@google/generative-ai": "^0.3.0",
     "@solana/web3.js": "^1.95.0",
     "zod": "^3.25.76"
   }
