@@ -159,6 +159,7 @@ Failure signatures so far:
 | T-012 | Redaction | c776d9a | 2026-11-03 08:54 | verify PASS (36 tests) | 1 | DONE: deep redaction with cycle detection |
 | T-013 | Structured logger and spans | 3dc6437 | 2026-11-03 08:59 | verify PASS (41 tests) | 1 | DONE: structured logger, span tracking, and redact-on-write |
 | T-014 | Path guard | 487bc06 | 2026-11-03 09:05 | verify PASS (56 tests) | 1 | DONE: workspace path containment, deny list, symlinks |
+| T-014-HANDOFF | Handoff snapshot (tasks 0-14) | cadd7ab | 2026-11-03 09:07 | docs/agent/handoff.md updated | 1 | HANDOFF |
 | T-015 | URL guard (SSRF) | df30465 | 2026-11-03 09:14 | verify PASS (69 tests) | 1 | DONE: SSRF protection, numeric/hex/octal/IPv6-mapped IP checks, guardedFetch redirects |
 | AUDIT | Full checkpoint (tasks 10-15) | df30465 | 2026-11-03 09:15 | root: verify PASS (69 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-016 | Shared validation schemas | 987b26e | 2026-11-03 09:22 | verify PASS (91 tests) | 1 | DONE: zod schemas, boundary checks, base58 32-byte pubkey, prompt, path, url |
@@ -170,3 +171,4 @@ Failure signatures so far:
 | T-024 | Anthropic provider | 7c38dd9 | 2026-11-03 10:03 | verify PASS (142 tests) | 1 | DONE: AnthropicClient, Messages API, guardedFetch SSRF, refusal handling, error mapping, key redaction |
 | AUDIT | Full checkpoint (tasks 16-24) | 7c38dd9 | 2026-11-03 10:05 | root: verify PASS (142 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-025 | Ollama provider (local) | df84361 | 2026-11-03 10:10 | verify PASS (153 tests) | 1 | DONE: OllamaClient, loopback enforcement, listModels, healthCheck, 120s timeout, jsonMode warnings |
+| T-026 | Structured output layer | fb82ed2 | 2026-11-03 10:15 | verify PASS (160 tests) | 1 | DONE: generateStructured, fence stripping, balanced JSON extraction, strict Zod validation, repair loop, empty content flag |

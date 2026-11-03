@@ -154,7 +154,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests: not running (ECONNREFUSED) → `config`-style friendly error, model missing, timeout, non-loopback URL refused unless user flagged local.
   - Lesson: 02
 
-- [ ] **T-026 · Structured output layer**
+- [x] **T-026 · Structured output layer**
   - Needs: T-016, T-021
   - Scope: `src/ai/structured.ts`, `src/ai/structured.test.ts`
   - Do: `generateStructured(client, schema, request, {maxRepairs: 1})`. Pipeline: strip markdown fences and chatty pre/post text → extract JSON → `schema.strict().safeParse` → on failure send **one** repair prompt containing the validation error → on second failure return a typed `schema_violation` refusal. Every schema includes `needsHumanReview: boolean` and `uncertainty?: string`.
