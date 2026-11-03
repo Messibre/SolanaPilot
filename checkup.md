@@ -186,3 +186,4 @@ Failure signatures so far:
 | T-035 | Stage: PLAN and GENERATE | 0afbc16 | 2026-11-03 11:57 | verify PASS (255 tests) | 1 | DONE: structured plan & generate stages, pathGuard write containment, size caps, overwrite protection, red-green checked |
 | T-036 | Stage: BUILD and FIX loop | 180b1bd | 2026-11-03 12:08 | verify PASS (264 tests) | 1 | DONE: compiler error parser, surgical patch schema, signature tracking, strategy adaptation, cycle detection cap |
 | T-037 | Stage: TEST generation and REVIEW | 8b257e6 | 2026-11-03 12:21 | verify PASS (272 tests) | 1 | DONE: Anchor TS test generation, security review with 10-point checklist, blocksDeploy on high severity, red-green checked |
+| T-038 | Deploy runner refactor (devnet only) | e47a489 | 2026-11-03 12:36 | verify PASS (280 tests) | 1 | DONE: execFile deploy runner, devnetGuard mainnet refusal, balance check, airdrop retry bound, Windows path handling |

@@ -242,7 +242,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests with fixture programs containing a known issue (missing signer check, unchecked math) show it is reported; clean fixture reports none.
   - Lesson: 03, 04
 
-- [ ] **T-038 · Deploy runner refactor (devnet only)**
+- [x] **T-038 · Deploy runner refactor (devnet only)**
   - Needs: T-014
   - Scope: `src/deploy/`, `src/terminalRunner.ts` (migrate then delete)
   - Do: replace shell-string commands with `execFile`/`spawn` args arrays; preserve the Windows handling; add devnet guard (`solana config get` must show devnet/localhost), balance check, airdrop with bounded retry, structured result `{ok, step, programId?, signature?, error?}`, streaming output through the redacting logger. Mainnet URLs refused in code.
