@@ -14,6 +14,7 @@ export * from "./registry";
 export * from "./fs";
 export * from "./runCheck";
 export * from "./fetchDocs";
+export * from "./wrap";
 
 export const AGENT_TOOLS_MODULE = "agent/tools";
 
