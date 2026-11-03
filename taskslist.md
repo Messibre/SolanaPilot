@@ -214,7 +214,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests enumerate all legal transitions and assert every other pair is rejected; every state has a declared way to reach a terminal state; doc includes the diagram (mermaid).
   - Lesson: 08
 
-- [ ] **T-034 · Skills (progressive disclosure)**
+- [x] **T-034 · Skills (progressive disclosure)**
   - Needs: T-010
   - Scope: `src/agent/skills/`, `src/ai/prompts/base.ts`, `src/systemPrompt.ts` (to be split, then removed), `docs/adr/0002-skills.md`
   - Do: split the 300-line monolithic prompt into a short base prompt + skill files (`anchor-core`, `pda`, `spl-token`, `token-2022`, `cpi`, `security-checklist`, `frontend-wallet`, `testing`). Each skill file: trigger keywords, workflow, expected output schema, failure rules, security boundary. Loader presents one-line summaries first; full text injected only when triggered by the request or by a stage.
