@@ -151,3 +151,4 @@ Failure signatures so far:
 | T-000 | Branch and environment snapshot | 270d085 | 2026-11-03 08:05 | N/A (baseline) | 1 | DONE: feat/refactor created, toolchain versions recorded |
 | T-001 | One verify command | 7673a07 | 2026-11-03 08:21 | verify PASS (5 scripts, 1 test) | 1 | DONE: vitest, prettier, verify command added and red-green checked |
 | T-002 | Baseline report | 53a5a1d | 2026-11-03 08:27 | root: verify PASS, 5 warnings; web-explorer: lint 1 err, tsc 3 err | 1 | DONE: baseline captured in docs/agent/baseline.md |
+| T-003 | Secret hygiene | 70997bf | 2026-11-03 08:34 | verify PASS (12 tests) | 1 | DONE: check-secrets scanner + tests + gitignores |

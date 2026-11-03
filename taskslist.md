@@ -34,7 +34,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: baseline file exists with commands and results for both packages.
   - Lesson: 01
 
-- [ ] **T-003 · Secret hygiene**
+- [x] **T-003 · Secret hygiene**
   - Needs: T-001
   - Scope: `scripts/check-secrets.mjs`, `scripts/check-secrets.test.ts`, `.gitignore`, `web-explorer/.gitignore`, `package.json`
   - Do: real `check:secrets`: scans tracked + staged files for patterns (Gemini `AIza…`, `sk-…`, `sk-ant-…`, `ghp_…`, 64-number JSON arrays that look like keypairs, 80–90 char base58 strings assigned to `*key*`/`*secret*`, `Bearer …`, `-----BEGIN … PRIVATE KEY-----`). Allow `.env.example` placeholders. Ensure `.gitignore` covers `.env*` (except example), `*keypair*.json`, `id.json`, `target/`, `out/`, `*.vsix`, `.next/`, `coverage/`, `*.log`. Print only file and line, never the matched text.
