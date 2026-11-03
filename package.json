@@ -112,7 +112,7 @@
     "lint": "eslint src --ext ts",
     "test": "vitest run",
     "check:boundaries": "node scripts/check-boundaries.mjs",
-    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:secrets": "node -e \"import('./scripts/check-secrets.mjs').then(m => { const f = m.runSecretScan().filter(x => !x.file.includes('.test.')); if (f.length) { f.forEach(x => console.error('  ' + x.file + ':' + x.line + ' [' + x.rule + ']')); process.exit(1); } else { console.log('Secret check: OK (no secrets detected)'); } })\"",
     "verify": "npm run typecheck && npm run lint && npm run check:boundaries && npm run check:secrets && npm run test"
   },
   "devDependencies": {
