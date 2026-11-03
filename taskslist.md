@@ -59,7 +59,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: structure exists, compiles, ADR has a numeric reversal trigger.
   - Lesson: 10
 
-- [ ] **T-011 · Typed errors and failure categories**
+- [x] **T-011 · Typed errors and failure categories**
   - Needs: T-010
   - Scope: `src/core/errors.ts`, `src/core/errors.test.ts`
   - Do: error classes for every category in `Agent.md` §10 with `category`, `retryable`, `userMessage` (safe to show), and `cause` (never shown). A function `classify(unknown): SolanaPilotError` so nothing falls into an "unknown pile" without being `internal`.
