@@ -27,7 +27,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `npm run verify` exits 0 on a clean checkout; deleting the sample test's expected value makes it fail (red-green checked).
   - Lesson: 01
 
-- [ ] **T-002 · Baseline report**
+- [x] **T-002 · Baseline report**
   - Needs: T-001
   - Scope: `docs/agent/baseline.md`
   - Do: run `npm run typecheck`, `npm run lint`, and the web-explorer's `npm run lint` and `npx tsc --noEmit` (no `build`/`dev`). Record every failure count and first 10 messages. Do not fix them here.
