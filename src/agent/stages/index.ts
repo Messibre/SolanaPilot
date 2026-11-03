@@ -9,3 +9,5 @@ export * from "./plan";
 export * from "./generate";
 export * from "./build";
 export * from "./fix";
+export * from "./test";
+export * from "./review";
