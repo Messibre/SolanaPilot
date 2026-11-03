@@ -44,14 +44,35 @@
   "contributes": {
     "commands": [
       {
-        "command": "solanaCopilot.openChat",
+        "command": "solanaPilot.openChat",
         "title": "Open Chat",
         "category": "SolanaPilot",
         "icon": "$(comment-discussion)"
       },
       {
+        "command": "solanaPilot.setApiKey",
+        "title": "Set API Key",
+        "category": "SolanaPilot"
+      },
+      {
+        "command": "solanaPilot.selectProviderAndModel",
+        "title": "Select Provider and Model",
+        "category": "SolanaPilot"
+      },
+      {
+        "command": "solanaPilot.testConnection",
+        "title": "Test Connection",
+        "category": "SolanaPilot"
+      },
+      {
+        "command": "solanaCopilot.openChat",
+        "title": "Open Chat (Legacy)",
+        "category": "SolanaPilot",
+        "icon": "$(comment-discussion)"
+      },
+      {
         "command": "solanaCopilot.setApiKey",
-        "title": "Set Gemini API Key",
+        "title": "Set Gemini API Key (Legacy)",
         "category": "SolanaPilot"
       },
       {
@@ -75,9 +96,14 @@
     ],
     "keybindings": [
       {
-        "command": "solanaCopilot.openChat",
+        "command": "solanaPilot.openChat",
         "key": "ctrl+shift+s",
         "mac": "cmd+shift+s"
+      },
+      {
+        "command": "solanaCopilot.openChat",
+        "key": "ctrl+shift+alt+s",
+        "mac": "cmd+shift+alt+s"
       },
       {
         "command": "solanaCopilot.generateProgram",
@@ -88,6 +114,53 @@
     "configuration": {
       "title": "SolanaPilot",
       "properties": {
+        "solanaPilot.provider": {
+          "type": "string",
+          "enum": ["gemini", "anthropic", "openaiCompatible", "ollama", "mock"],
+          "default": "gemini",
+          "description": "Active AI provider for SolanaPilot"
+        },
+        "solanaPilot.model": {
+          "type": "string",
+          "default": "gemini-2.0-flash",
+          "description": "Model identifier for the active AI provider"
+        },
+        "solanaPilot.fallbackOrder": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["gemini", "anthropic", "openaiCompatible", "ollama"],
+          "description": "Ordered fallback list of providers on retryable failure"
+        },
+        "solanaPilot.timeouts.requestMs": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in milliseconds"
+        },
+        "solanaPilot.timeouts.ollamaMs": {
+          "type": "number",
+          "default": 120000,
+          "description": "Timeout for local Ollama inference in milliseconds"
+        },
+        "solanaPilot.retries.maxAttempts": {
+          "type": "number",
+          "default": 2,
+          "description": "Maximum retry attempts with exponential backoff"
+        },
+        "solanaPilot.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "Base URL for local Ollama service"
+        },
+        "solanaPilot.customEndpoint.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL for custom OpenAI-compatible endpoint"
+        },
+        "solanaPilot.customEndpoint.isLocal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow loopback addresses for custom OpenAI-compatible endpoint"
+        },
         "solanaPilot.autoContextRefresh": {
           "type": "boolean",
           "default": true,

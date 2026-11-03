@@ -1,5 +1,8 @@
 /**
  * VS Code host adapters and command wiring.
- * Permitted to import 'vscode'.
+ * Permitted to import 'vscode' per Agent.md §6.
  */
-export const VSCODE_ADAPTERS_MODULE = "vscodeAdapters";
+
+export * from "./secretStorage";
+export * from "./statusBar";
+export * from "./commands";
