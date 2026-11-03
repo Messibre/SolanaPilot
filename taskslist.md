@@ -161,7 +161,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests: preamble/postamble, truncated JSON, extra keys, number out of range, repair success, repair exhausted (exactly 2 provider calls, not more), schema-valid-but-empty content flagged as `needsHumanReview`.
   - Lesson: 03
 
-- [ ] **T-027 · Wire providers into the extension (VS Code adapters)**
+- [x] **T-027 · Wire providers into the extension (VS Code adapters)**
   - Needs: T-022, T-023, T-024, T-025, T-026
   - Scope: `src/vscodeAdapters/`, `src/extension.ts`, `src/secretStorage.ts`, `package.json` (commands + settings contributions)
   - Do: per-provider keys in `SecretStorage`; commands `SolanaPilot: Set API Key`, `Select Provider and Model`, `Test Connection`; status bar item shows `provider · model`; settings for fallback order, timeouts, Ollama URL, custom endpoint. Validation on key input is per provider (don't require `AIza` for non-Gemini).
