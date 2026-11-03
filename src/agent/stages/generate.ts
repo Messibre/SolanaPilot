@@ -5,6 +5,7 @@
  */
 
 import * as fs from "node:fs";
+import * as path from "node:path";
 import { z } from "zod";
 import { programNameSchema, relativeWorkspacePathSchema } from "../../core/validation";
 import { resolveInWorkspace } from "../../security/pathGuard";
@@ -58,11 +59,11 @@ export interface GenerateStageInput {
 export async function generateStage(input: GenerateStageInput): Promise<GenerateOutput> {
   const skillLoader = input.skillLoader ?? new SkillLoader();
   const progressive = skillLoader.buildProgressivePrompt({
-    userPrompt: `${input.plan.description} ${input.plan.programName}`,
+    userPrompt: input.plan.description,
     stage: "GENERATE",
   });
 
-  const promptContent = `Generate all necessary Anchor program files for the following plan:
+  const promptContent = `Generate complete Anchor program files according to this approved architecture plan:
 PROGRAM NAME: ${input.plan.programName}
 DESCRIPTION: ${input.plan.description}
 ACCOUNTS: ${JSON.stringify(input.plan.accounts, null, 2)}
@@ -138,4 +139,22 @@ Rules:
   }
 
   return output;
+}
+
+/**
+ * Executes the WRITE stage, safely writing files to workspace under path containment.
+ */
+export async function writeStage(input: {
+  workspaceRoot: string;
+  files: GeneratedFile[];
+  allowOverwrite?: boolean;
+}): Promise<void> {
+  for (const file of input.files) {
+    const fullPath = resolveInWorkspace(input.workspaceRoot, file.path, "write");
+    const parentDir = path.dirname(fullPath);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
+    fs.writeFileSync(fullPath, file.content, "utf8");
+  }
 }
