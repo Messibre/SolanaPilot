@@ -160,3 +160,4 @@ Failure signatures so far:
 | T-013 | Structured logger and spans | 3dc6437 | 2026-11-03 08:59 | verify PASS (41 tests) | 1 | DONE: structured logger, span tracking, and redact-on-write |
 | T-014 | Path guard | 487bc06 | 2026-11-03 09:05 | verify PASS (56 tests) | 1 | DONE: workspace path containment, deny list, symlinks |
 | T-015 | URL guard (SSRF) | df30465 | 2026-11-03 09:14 | verify PASS (69 tests) | 1 | DONE: SSRF protection, numeric/hex/octal/IPv6-mapped IP checks, guardedFetch redirects |
+| AUDIT | Full checkpoint (tasks 10-15) | df30465 | 2026-11-03 09:15 | root: verify PASS (69 tests), secrets PASS, log-stat verified | 1 | PASS |
