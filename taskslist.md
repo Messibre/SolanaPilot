@@ -80,7 +80,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests prove secrets never reach the sink, unfinished spans are reported, every error log carries a failure category.
   - Lesson: 09
 
-- [ ] **T-014 · Path guard**
+- [x] **T-014 · Path guard**
   - Needs: T-011
   - Scope: `src/security/pathGuard.ts`, `src/security/pathGuard.test.ts`
   - Do: `resolveInWorkspace(root, candidate, mode: 'read'|'write')` → absolute safe path or typed `tool_refused`. Deny list per `Agent.md` §10. Handle `..`, absolute paths, symlink escapes (injected `realpath`), Windows drive/case/`\`, null bytes, very long paths.

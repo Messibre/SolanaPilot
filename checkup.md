@@ -158,3 +158,4 @@ Failure signatures so far:
 | T-011 | Typed errors and failure categories | 8f7e43d | 2026-11-03 08:48 | verify PASS (21 tests) | 1 | DONE: 15 error categories + classify function |
 | T-012 | Redaction | c776d9a | 2026-11-03 08:54 | verify PASS (36 tests) | 1 | DONE: deep redaction with cycle detection |
 | T-013 | Structured logger and spans | 3dc6437 | 2026-11-03 08:59 | verify PASS (41 tests) | 1 | DONE: structured logger, span tracking, and redact-on-write |
+| T-014 | Path guard | 487bc06 | 2026-11-03 09:05 | verify PASS (56 tests) | 1 | DONE: workspace path containment, deny list, symlinks |
