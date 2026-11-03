@@ -207,7 +207,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: scripted-provider tests for each terminal state; no code path exits without a receipt (test with fault injection); the model saying "done" without meeting a success condition does not end the loop.
   - Lesson: 05
 
-- [ ] **T-033 · Pipeline state graph**
+- [x] **T-033 · Pipeline state graph**
   - Needs: T-032
   - Scope: `src/agent/pipeline.ts`, `src/agent/pipeline.test.ts`, `docs/AGENT_PIPELINE.md`
   - Do: explicit transition table: `PLAN → GENERATE → VALIDATE → WRITE → BUILD → (FIX ⟲ max 3) → TEST → REVIEW → AWAIT_DEPLOY_CONFIRM → DEPLOY → REGISTER → DONE`, with `FAILED` and `CANCELLED` reachable from any state. Illegal transition throws a typed error. Pipeline state is serializable so a run can be resumed or displayed.
