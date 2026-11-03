@@ -221,7 +221,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests show (a) a token request loads `spl-token` and not `pda`-only content, (b) base prompt token estimate is at least 60% smaller than the old prompt, (c) skills can't override safety rules in the base. ADR has a numeric reversal trigger.
   - Lesson: 10
 
-- [ ] **T-035 · Stage: PLAN and GENERATE**
+- [x] **T-035 · Stage: PLAN and GENERATE**
   - Needs: T-033, T-034
   - Scope: `src/agent/stages/plan.ts`, `generate.ts`, tests
   - Do: PLAN returns a structured plan (program name, accounts, instructions, risks, needsHumanReview). GENERATE returns the files (strict schema; paths guarded; size caps; no overwriting existing files without confirmation flag). Reuse the validations from the old `programGenerator.ts`.
