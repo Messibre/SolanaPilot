@@ -101,7 +101,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: boundary tests (len-1, len, len+1), unicode, invalid base58, wrong byte length.
   - Lesson: 03
 
-- [ ] **T-017 · Typed settings**
+- [x] **T-017 · Typed settings**
   - Needs: T-016
   - Scope: `src/core/config.ts`, `src/core/config.test.ts`
   - Do: zod schema for all settings (provider, model, fallbackOrder, timeouts, retries, budgets: maxSteps, maxTokens, maxWallClockSec; ollama baseUrl; custom endpoint + `isLocal`; autoContextRefresh; maxHistoryMessages) with defaults and a pure `loadConfig(raw)` that returns a typed config or a `config` error naming the bad key.

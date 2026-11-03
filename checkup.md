@@ -162,3 +162,4 @@ Failure signatures so far:
 | T-015 | URL guard (SSRF) | df30465 | 2026-11-03 09:14 | verify PASS (69 tests) | 1 | DONE: SSRF protection, numeric/hex/octal/IPv6-mapped IP checks, guardedFetch redirects |
 | AUDIT | Full checkpoint (tasks 10-15) | df30465 | 2026-11-03 09:15 | root: verify PASS (69 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-016 | Shared validation schemas | 987b26e | 2026-11-03 09:22 | verify PASS (91 tests) | 1 | DONE: zod schemas, boundary checks, base58 32-byte pubkey, prompt, path, url |
+| T-017 | Typed settings | f6b02b2 | 2026-11-03 09:26 | verify PASS (99 tests) | 1 | DONE: zod config schema, defaults, loadConfig with typed ConfigError naming bad key |
