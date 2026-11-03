@@ -73,7 +73,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests for each secret family, nested objects, arrays, cyclic objects, **over-redaction** (public keys/program IDs are NOT redacted; ordinary words stay) and under-redaction (obfuscated variants like split across whitespace are documented as limits). Red-green checked.
   - Lesson: 09
 
-- [ ] **T-013 · Structured logger and spans**
+- [x] **T-013 · Structured logger and spans**
   - Needs: T-012
   - Scope: `src/core/logger.ts`, `src/core/logger.test.ts`
   - Do: event schema `{ts, level, component, phase, spanId, parentSpanId?, durationMs?, category?, message, data?}`; `startSpan/endSpan`; sink interface (VS Code Output channel and JSONL file sinks come later, here only memory + interface); redaction applied inside the logger before any sink; a `verifySpans()` that reports spans that never ended.
