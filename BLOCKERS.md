@@ -33,3 +33,12 @@ Active and historical blockers encountered during task execution.
   - Upgrade Anchor CLI to `>= 0.31` using `avm` (`avm use 0.31.0` or newer) per `setup.md`.
   - Upgrade Solana CLI if needed (`agave-install` or `solana-install init 2.0+` supporting Cargo edition2024).
 - **Affected Tasks**: T-041, T-042, T-043, T-044, T-045, T-046.
+
+### T-041: Anchor CLI version is below requirement
+- **Task ID**: T-041
+- **Attempt**: 1
+- **Tried**: Checked `anchor --version` per task policy: "anchor --version must be 0.31 or newer; if it is older, write a blocker (the human upgrades with avm, see setup.md) — do not install it yourself."
+- **Error / Ambiguity**: Current system version is `anchor-cli 0.30.0`. Version 0.31 or newer is required.
+- **Needed from Human**:
+  - Run `avm install 0.31.0` and `avm use 0.31.0` (or newer) as specified in `setup.md`.
+- **Affected Tasks**: T-041, T-042, T-043, T-044, T-045, T-046.
