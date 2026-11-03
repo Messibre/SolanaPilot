@@ -41,7 +41,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests prove it flags each pattern and ignores placeholders (red-green checked); `check:secrets` is part of `verify`; script output never contains the secret itself.
   - Lesson: 09
 
-- [ ] **T-004 · Boundary lint**
+- [x] **T-004 · Boundary lint**
   - Needs: T-001
   - Scope: `.eslintrc.json`, `scripts/check-boundaries.mjs`, `package.json`
   - Do: make `core/`, `security/`, `ai/`, `agent/` unable to import `vscode` (ESLint `no-restricted-imports` and/or the script). Add a failing fixture test that proves a violation is caught.
