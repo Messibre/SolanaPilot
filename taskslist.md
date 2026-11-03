@@ -52,7 +52,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 1 — Core foundations (no `vscode` imports)
 
-- [ ] **T-010 · Create layout skeleton**
+- [x] **T-010 · Create layout skeleton**
   - Needs: T-004
   - Scope: new folders and `index.ts`/README-less empty modules only; `docs/adr/0001-layout.md`
   - Do: create the directories from `Agent.md` §6 with minimal exports. Write ADR 0001 (falsifiable: e.g. "reverse if more than 3 files need `vscode` inside `core/ai/agent/security`").

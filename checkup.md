@@ -154,3 +154,4 @@ Failure signatures so far:
 | T-003 | Secret hygiene | 70997bf | 2026-11-03 08:34 | verify PASS (12 tests) | 1 | DONE: check-secrets scanner + tests + gitignores |
 | T-004 | Boundary lint | 0fd8b56 | 2026-11-03 08:38 | verify PASS (12 tests) | 1 | DONE: boundary lint in ESLint and check-boundaries.mjs |
 | AUDIT | Full checkpoint (tasks 0-4) | 0fd8b56 | 2026-11-03 08:40 | root: verify PASS, secrets PASS, log-stat verified; web: verify pending T-060 | 1 | PASS |
+| T-010 | Create layout skeleton | 6b69d87 | 2026-11-03 08:44 | verify PASS (12 tests) | 1 | DONE: layout skeleton and ADR 0001 created |
