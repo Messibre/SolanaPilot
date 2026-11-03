@@ -193,7 +193,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: each tool has tests for oversized args, traversal, unknown params, and proof that read-only tools cannot mutate (side-effect test using a fake fs that throws on write).
   - Lesson: 04
 
-- [ ] **T-031 · Injection screen**
+- [x] **T-031 · Injection screen**
   - Needs: T-030
   - Scope: `src/security/injectionScreen.ts`, `…test.ts`, `src/agent/tools/wrap.ts`
   - Do: detect common injection patterns in tool output (ignore/override instructions, "system prompt", role impersonation, instructions to run commands/exfiltrate); wrap every tool result in a delimited "untrusted data" envelope; flagged results carry a warning flag the loop logs.
