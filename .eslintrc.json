@@ -11,5 +11,23 @@
   },
   "plugins": ["@typescript-eslint"],
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
-  "ignorePatterns": ["out", "node_modules"]
+  "ignorePatterns": ["out", "node_modules"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/core/**/*.ts",
+        "src/security/**/*.ts",
+        "src/ai/**/*.ts",
+        "src/agent/**/*.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "error",
+        "@typescript-eslint/no-explicit-any": "error"
+      }
+    }
+  ]
 }

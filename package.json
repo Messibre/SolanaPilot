@@ -108,18 +108,23 @@
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "vitest run",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run check:boundaries && npm run check:secrets && npm run test"
   },
   "devDependencies": {
-    "@types/node": "^18.18.0",
+    "@types/node": "^22.0.0",
     "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",
     "esbuild": "^0.19.5",
     "eslint": "^8.51.0",
-    "typescript": "^5.2.2"
+    "prettier": "^3.9.10",
+    "typescript": "^5.2.2",
+    "vitest": "^2.1.9"
   },
   "icon": "assets/icon.png",
   "dependencies": {
