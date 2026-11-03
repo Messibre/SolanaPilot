@@ -164,3 +164,4 @@ Failure signatures so far:
 | T-016 | Shared validation schemas | 987b26e | 2026-11-03 09:22 | verify PASS (91 tests) | 1 | DONE: zod schemas, boundary checks, base58 32-byte pubkey, prompt, path, url |
 | T-017 | Typed settings | f6b02b2 | 2026-11-03 09:26 | verify PASS (99 tests) | 1 | DONE: zod config schema, defaults, loadConfig with typed ConfigError naming bad key |
 | T-020 | LLM client interface and gateway | 46bbf12 | 2026-11-03 09:35 | verify PASS (107 tests) | 1 | DONE: LlmClient, LlmGateway, timeout, retry backoff, fallback chain, pre-flight key check |
+| T-021 | Mock provider (offline lane) | ea2869a | 2026-11-03 09:39 | verify PASS (112 tests) | 1 | DONE: MockLlmClient with FIFO response queue, error injection, delay, call recording |

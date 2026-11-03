@@ -119,7 +119,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: fake-clock tests for timeout, 429→retry→success, 401 no retry, 400 no retry, fallback order, key never present in error text.
   - Lesson: 02
 
-- [ ] **T-021 · Mock provider (offline lane)**
+- [x] **T-021 · Mock provider (offline lane)**
   - Needs: T-020
   - Scope: `src/ai/providers/mock.ts`, `src/ai/providers/mock.test.ts`
   - Do: scriptable provider (queue of responses/errors/delays) used by all later agent tests.
