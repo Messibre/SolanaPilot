@@ -249,7 +249,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests with a fake process runner: devnet ok, mainnet refused, airdrop fail path, build fail path, Windows path with spaces.
   - Lesson: 04, 14
 
-- [ ] **T-039 · Stage: DEPLOY, REGISTER, wiring, and resume**
+- [x] **T-039 · Stage: DEPLOY, REGISTER, wiring, and resume**
   - Needs: T-037, T-038
   - Scope: `src/agent/stages/deploy.ts`, `register.ts`, `src/registry/`, `src/programGenerator.ts` (migrate then delete), `src/frontendGenerator.ts` (adapt to gateway + structured output)
   - Do: DEPLOY waits at `AWAIT_DEPLOY_CONFIRM` (an injected `confirm()` callback); REGISTER uses the registry client with validated inputs. The existing frontend generator becomes a pipeline stage that uses structured output.
