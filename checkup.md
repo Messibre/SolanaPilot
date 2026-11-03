@@ -175,3 +175,4 @@ Failure signatures so far:
 | T-026-HANDOFF | Handoff snapshot (tasks 0-26) | 2ad3ec2 | 2026-11-03 10:16 | docs/agent/handoff.md updated | 1 | HANDOFF |
 | T-027 | Wire providers into extension | c63972e | 2026-11-03 10:23 | verify PASS (160 tests), esbuild PASS | 1 | DONE: SecretStorage per provider, commands (selectProviderAndModel, testConnection, setApiKey), status bar item, thin extension.ts |
 | T-028 | Budget module | 9e14c88 | 2026-11-03 10:27 | verify PASS (166 tests) | 1 | DONE: BudgetTracker for steps, tokens, wallClock, callsPerHour, conservative estimation fallback |
+| T-029 | Retire old aiClient.ts | 2d0fdca | 2026-11-03 10:38 | verify PASS (166 tests), esbuild PASS | 1 | DONE: removed @google/generative-ai, deleted rateLimiter.ts, routed legacy calls through LlmGateway |

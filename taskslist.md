@@ -175,7 +175,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests: each budget trips alone; tokens counted from provider usage, with a conservative estimate fallback if a provider returns none.
   - Lesson: 05
 
-- [ ] **T-029 · Retire the old `aiClient.ts`**
+- [x] **T-029 · Retire the old `aiClient.ts`**
   - Needs: T-027, T-028
   - Scope: `src/aiClient.ts`, `src/programGenerator.ts`, `src/chatPanel.ts` (call-site changes only), `package.json`
   - Do: route all existing AI calls through the gateway; remove `@google/generative-ai`; delete `aiClient.ts` and `rateLimiter.ts`.
