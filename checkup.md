@@ -179,3 +179,4 @@ Failure signatures so far:
 | AUDIT | Full checkpoint (tasks 25-29) | 2d0fdca | 2026-11-03 10:41 | root: verify PASS (166 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-030 | Tool registry | 1d9a124 | 2026-11-03 10:51 | verify PASS (200 tests) | 1 | DONE: tool registry, read_file, list_dir, search_text, write_file, run_check, fetch_docs, side-effect proof |
 | T-031 | Injection screen | 3b094a9 | 2026-11-03 10:57 | verify PASS (219 tests) | 1 | DONE: injection screen, negative/positive fixtures, untrusted tool envelope |
+| T-032 | Agent loop orchestrator | ea903c0 | 2026-11-03 11:20 | verify PASS (228 tests) | 1 | DONE: agent loop orchestrator, 6 terminal states, duplicate/oscillation cycle detection, receipts |

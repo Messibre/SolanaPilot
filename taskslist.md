@@ -200,7 +200,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: positive and negative fixtures (normal Rust/TS docs must not be flagged), red-green checked.
   - Lesson: 04
 
-- [ ] **T-032 · Agent loop orchestrator**
+- [x] **T-032 · Agent loop orchestrator**
   - Needs: T-028, T-030, T-031, T-026
   - Scope: `src/agent/loop.ts`, `src/agent/receipts.ts`, `src/agent/loop.test.ts`
   - Do: Perceive → Decide → Act → Observe loop. Hard limits from budget module. **Duplicate-call detection** (same tool + same normalized args on consecutive steps) and **oscillation detection** (A,B,A,B). Tool crashes become structured observations, not exceptions. Exactly one terminal state: `success | budget_exhausted | cycle_detected | unrecoverable_tool_error | refused | cancelled`. Always returns a receipt: steps, tool names, durations, tokens, final status, reason.
