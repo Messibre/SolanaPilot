@@ -133,7 +133,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: error-mapping tests (401, 429, 503, timeout, empty response, safety block) pass.
   - Lesson: 02
 
-- [ ] **T-023 · OpenAI-compatible provider (OpenAI, OpenRouter, custom)**
+- [x] **T-023 · OpenAI-compatible provider (OpenAI, OpenRouter, custom)**
   - Needs: T-021, T-015
   - Scope: `src/ai/providers/openaiCompatible.ts`, `…test.ts`
   - Do: `fetch`-based chat completions client parameterized by `baseUrl`, headers, and preset (`openai`, `openrouter`, `custom`). All calls go through `guardedFetch`. `custom` requires https unless `isLocal` is explicitly true. Map statuses/errors to typed errors. Never put the key in URLs.
