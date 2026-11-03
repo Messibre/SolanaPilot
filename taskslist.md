@@ -186,7 +186,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 3 — Agent engine (no `vscode` imports)
 
-- [ ] **T-030 · Tool registry**
+- [x] **T-030 · Tool registry**
   - Needs: T-014, T-016, T-021
   - Scope: `src/agent/tools/`
   - Do: registry where each tool declares `name`, `description`, zod `input`, `output`, `sideEffects: 'none'|'workspace-write'|'process'|'network'`. Tools: `read_file`, `list_dir`, `search_text` (read-only), `write_file` (staged, path-guarded), `run_check` (fixed allowlist of commands with argument arrays: anchor build, anchor test, cargo check), `fetch_docs` (https, domain allowlist: `solana.com`, `anchor-lang.com`, `docs.rs`, `github.com` raw docs only). Clamp sizes (read ≤ 200 KB, list ≤ 500 entries, search ≤ 50 hits). Invalid args ⇒ typed refusal that lists valid alternatives.
