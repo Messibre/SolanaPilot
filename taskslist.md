@@ -94,7 +94,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests include `http://`, `file://`, `169.254.169.254`, `127.1`, `2130706433`, `0x7f000001`, `017700000001`, `[::1]`, `[::ffff:127.0.0.1]`, `user:pass@host`, a hostname resolving to a private IP, and a public URL that redirects to a private one. Red-green checked.
   - Lesson: 13
 
-- [ ] **T-016 · Shared validation schemas**
+- [x] **T-016 · Shared validation schemas**
   - Needs: T-011
   - Scope: `src/core/validation.ts`, `src/core/validation.test.ts`
   - Do: zod schemas + helpers: `programName` (snake_case, 3–32), `pubkey` (base58, decodes to 32 bytes), `userPrompt` (trimmed, 1–4000 chars, no null bytes), `relativeWorkspacePath`, `httpsUrl`, `providerId`, `modelName`. Export inferred types.
