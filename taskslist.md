@@ -235,7 +235,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests with scripted failing/passing builds including a stuck-on-same-error case that stops at the cap.
   - Lesson: 05
 
-- [ ] **T-037 · Stage: TEST generation and REVIEW**
+- [x] **T-037 · Stage: TEST generation and REVIEW**
   - Needs: T-036
   - Scope: `src/agent/stages/test.ts`, `review.ts`, tests
   - Do: TEST generates Anchor TS tests covering happy + failure paths for each instruction. REVIEW runs the `security-checklist` skill over generated Rust, returns findings `{severity, location, issue, suggestion}`; `high` severity blocks DEPLOY until the user confirms.
