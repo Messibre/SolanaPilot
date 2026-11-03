@@ -1,75 +1,67 @@
 /**
- * Simple rate limiter for API calls.
- * Enforces max 50 calls per hour with user warnings.
+ * Legacy rate limiter adapter delegating to src/agent/budget.ts.
+ * Maintained for backwards compatibility until old aiClient is retired in T-029.
  */
 
-interface CallRecord {
-  timestamp: number;
-}
+import { BudgetTracker } from "./agent/budget";
 
 class RateLimiter {
-  private calls: CallRecord[] = [];
+  private readonly budget: BudgetTracker;
   private readonly maxCallsPerHour = 50;
   private readonly hourInMs = 3600 * 1000;
+  private callTimestamps: number[] = [];
 
-  /**
-   * Check if a call is allowed and record it if so.
-   * Returns { allowed: boolean, remaining: number, resetAt: Date | null }
-   */
+  constructor() {
+    this.budget = new BudgetTracker({ maxCallsPerHour: 50 });
+  }
+
   public checkAndRecord(): {
     allowed: boolean;
     remaining: number;
     resetAt: Date | null;
   } {
     const now = Date.now();
-    // Remove calls older than 1 hour
-    this.calls = this.calls.filter(
-      (call) => now - call.timestamp < this.hourInMs,
-    );
+    const oneHourAgo = now - this.hourInMs;
+    this.callTimestamps = this.callTimestamps.filter((t) => t > oneHourAgo);
 
-    const remaining = this.maxCallsPerHour - this.calls.length;
-
-    if (remaining <= 0) {
-      // Calculate when the oldest call expires
-      const oldestCall = this.calls[0];
-      const resetAt = new Date(oldestCall.timestamp + this.hourInMs);
+    if (this.callTimestamps.length >= this.maxCallsPerHour) {
+      const oldestCall = this.callTimestamps[0];
+      const resetAt = new Date(oldestCall + this.hourInMs);
       return { allowed: false, remaining: 0, resetAt };
     }
 
-    // Record this call
-    this.calls.push({ timestamp: now });
+    this.callTimestamps.push(now);
+    try {
+      this.budget.recordCall();
+    } catch {
+      // Ignored for legacy return shape
+    }
 
     return {
       allowed: true,
-      remaining: remaining - 1,
+      remaining: this.maxCallsPerHour - this.callTimestamps.length,
       resetAt: null,
     };
   }
 
-  /**
-   * Get current stats without recording.
-   */
   public getStats(): { used: number; remaining: number; resetAt: Date | null } {
     const now = Date.now();
-    this.calls = this.calls.filter(
-      (call) => now - call.timestamp < this.hourInMs,
-    );
+    const oneHourAgo = now - this.hourInMs;
+    this.callTimestamps = this.callTimestamps.filter((t) => t > oneHourAgo);
 
-    const used = this.calls.length;
-    const remaining = this.maxCallsPerHour - used;
+    const used = this.callTimestamps.length;
+    const remaining = Math.max(0, this.maxCallsPerHour - used);
     const resetAt =
-      this.calls.length > 0
-        ? new Date(this.calls[0].timestamp + this.hourInMs)
+      this.callTimestamps.length > 0
+        ? new Date(this.callTimestamps[0] + this.hourInMs)
         : null;
 
     return { used, remaining, resetAt };
   }
 
-  /**
-   * Reset rate limiter (for testing).
-   */
   public reset(): void {
-    this.calls = [];
+    this.callTimestamps = [];
+    this.budget.reset();
   }
 }
 
