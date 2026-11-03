@@ -168,7 +168,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `verify` passes; adapter code has no business logic (it only calls core/ai); manual-run notes in the commit body list what a human should click to test.
   - Lesson: 02
 
-- [ ] **T-028 · Budget module replaces the 50/hr limiter**
+- [x] **T-028 · Budget module replaces the 50/hr limiter**
   - Needs: T-017
   - Scope: `src/agent/budget.ts`, `src/agent/budget.test.ts`, `src/rateLimiter.ts` (delete after migration)
   - Do: budgets for steps, tokens, wall-clock, and optional calls-per-hour; checked independently of anything the model says. Provides `remaining()` and typed `budget_exhausted`.
