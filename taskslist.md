@@ -20,7 +20,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `git branch --show-current` prints `feat/refactor`; snapshot file lists all versions (or "missing"); the two log files exist.
   - Lesson: 01
 
-- [ ] **T-001 · One `verify` command**
+- [x] **T-001 · One `verify` command**
   - Needs: T-000
   - Scope: `package.json`, `package-lock.json`, `tsconfig.json`, `.eslintrc.json`, `vitest.config.ts`, `.prettierrc`, `.editorconfig`, `scripts/`, `src/**/*.test.ts` (one sample test only)
   - Do: add `vitest`, `prettier`. Scripts: `typecheck`, `lint`, `test` (vitest run), `check:boundaries` (placeholder that passes), `check:secrets` (placeholder that passes), and `verify` that runs all of them. Remove the broken `test` script that points to `out/test/runTest.js`. Add one trivial real test so the runner is proven (a test of a pure function, not `expect(true)`).

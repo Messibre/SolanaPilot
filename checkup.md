@@ -149,3 +149,4 @@ Failure signatures so far:
 | Task | Title | Commit hash | Date (UTC) | Verify result | Attempts | Status / Notes |
 |---|---|---|---|---|---|---|
 | T-000 | Branch and environment snapshot | 270d085 | 2026-11-03 08:05 | N/A (baseline) | 1 | DONE: feat/refactor created, toolchain versions recorded |
+| T-001 | One verify command | 7673a07 | 2026-11-03 08:21 | verify PASS (5 scripts, 1 test) | 1 | DONE: vitest, prettier, verify command added and red-green checked |
