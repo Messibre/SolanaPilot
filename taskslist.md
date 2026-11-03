@@ -140,7 +140,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests for all three presets' URL/header building, status mapping, SSRF refusal of a private custom URL when `isLocal` is false, and key redaction.
   - Lesson: 02, 13
 
-- [ ] **T-024 · Anthropic provider**
+- [x] **T-024 · Anthropic provider**
   - Needs: T-021, T-015
   - Scope: `src/ai/providers/anthropic.ts`, `…test.ts`
   - Do: `fetch` client for the Messages API (verify current header names/versions in official docs before coding). Same guarantees as T-023.
