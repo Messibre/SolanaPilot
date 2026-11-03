@@ -13,10 +13,11 @@ out/
 dist/
 *.vsix
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Environment variables & secrets
+.env*
+!.env.example
+*keypair*.json
+id.json
 
 # IDE
 .vscode/
