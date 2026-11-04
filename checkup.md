@@ -133,6 +133,11 @@ When you stop, do not delete anything, do not "tidy up", and leave the tree clea
 ## Current Task
 
 ```
+Task:
+Started (UTC):
+Attempt:
+Plan:
+Failure signatures so far:
 ```
 
 ## Completion Log
@@ -183,4 +188,4 @@ When you stop, do not delete anything, do not "tidy up", and leave the tree clea
 | T-040 | Contract baseline | 6bb9dec | 2026-11-03 13:42 | verify PASS (304 tests) | 1 | DONE: anchor build baseline recorded, toolchain edition2024 failure documented in BLOCKERS.md |
 | T-041 | Anchor upgrade | f104387 | 2026-11-04 12:30 | verify PASS (304 tests) | 1 | DONE: anchor-cli 0.31, anchor-lang 0.31, @coral-xyz/anchor ^0.31, anchor build succeeded, IDL generated |
 | T-042 | Harden the registry program | — | 2026-11-04 12:35 | N/A | 1 | BLOCKED: Rule 7 scope forbids creating docs/CONTRACT.md because Scope is only programs/registry/src/** |
-| T-050 | Split chatPanel.ts | N/A | 2026-11-03 13:46 | N/A | 1 | BLOCKED: Rule 7 scope forbids editing src/extension.ts to update import when deleting src/chatPanel.ts |
+| T-050 | Split chatPanel.ts | fa4828e | 2026-11-04 12:49 | verify PASS (311 tests) | 1 | DONE: split chatPanel into src/chat/ (<300 lines each), Zod protocol validation, deleted chatPanel.ts |

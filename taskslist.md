@@ -313,7 +313,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 5 — Extension chat panel and packaging
 
-- [ ] **T-050 · Split `chatPanel.ts`**
+- [x] **T-050 · Split `chatPanel.ts`**
   - Needs: T-039
   - Scope: `src/chat/`, `src/chatPanel.ts` ,  `src/extension.ts` (delete after), `src/sidebarProvider.ts`
   - Do: separate lifecycle (`ChatPanel`), message protocol (zod discriminated union), handlers (one file per message type), history store (bounded by `maxHistoryMessages`), and context builder use. No file > 300 lines. Behavior identical.
