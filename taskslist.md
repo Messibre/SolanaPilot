@@ -274,9 +274,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `anchor build` succeeds with the new version; IDL regenerated; the explorer's IDL copy is untouched until T-046.
   - Lesson: 14
 
-- [!] **T-042 · Harden the registry program**
+- [ ] **T-042 · Harden the registry program**
   - Needs: T-041
-  - Scope: `programs/registry/src/**`
+  - Scope: `programs/registry/src/**`, `docs/CONTRACT.md`
   - Do: apply `Agent.md` §12 — checked math, named errors for every `require!`, `InitSpace` or one source of truth for sizes, length constants, signer/`has_one` on every mutation, safe close, documented seeds, events for state changes. **No new features.** Write the account/instruction table to `docs/CONTRACT.md`.
   - Done when: `anchor build` succeeds; the diff contains no new instruction; `docs/CONTRACT.md` lists every instruction with who may call it and what it validates.
   - Lesson: 04
@@ -320,9 +320,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: old file gone; protocol parse tests (valid, unknown type, extra keys, oversized text); `verify` passes.
   - Lesson: 08
 
-- [!] **T-051 · Webview rebuild (secure + themed)**
+- [ ] **T-051 · Webview rebuild (secure + themed)**
   - Needs: T-050, T-034
-  - Scope: `media/`, `src/chat/html.ts`, `src/webview/` (delete after)
+  - Scope: `media/`, `src/chat/html.ts`, `src/chat/html.test.ts`, `src/chat/contrast.test.ts`, `src/chat/panel.ts`, `src/webview/` (delete after)
   - Do: move the 1,300-line `chat.html` into `media/chat.css` + `media/chat.js` (no inline script/handlers), CSP with nonce, `localResourceRoots`. Apply the design tokens from `Agent.md` §14 on top of `--vscode-*` variables so it follows dark/light. UI: provider/model selector, a **pipeline progress view** (stage list with state, current step, budget meter), plan preview with approve/cancel, build/fix log, review findings, receipt summary, friendly error with its category. Accessible: labels, focus-visible, keyboard send, `aria-live` for progress.
   - Done when: HTML builder test asserts nonce present, no inline handlers, no remote URLs; protocol tests still pass; contrast test for webview tokens in both themes.
   - Lesson: 04, 09
