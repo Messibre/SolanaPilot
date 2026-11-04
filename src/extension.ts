@@ -11,7 +11,7 @@ import {
   promptSelectProviderAndModel,
   testConnection,
 } from "./vscodeAdapters";
-import { ChatPanel } from "./chatPanel";
+import { ChatPanel } from "./chat";
 import { generateAndDeploy } from "./programGenerator";
 import { generateFrontend } from "./frontendGenerator";
 import { getWorkspaceRoot } from "./fileWriter";
