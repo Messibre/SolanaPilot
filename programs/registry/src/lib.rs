@@ -28,9 +28,8 @@ pub mod solanapilot_registry {
         // Validate program_id is not a system account or common non-program keys
         require!(
             program_id != System::id() 
-            && program_id != solana_program::sysvar::clock::ID
-            && program_id != solana_program::sysvar::rent::ID
-            && program_id != anchor_lang::solana_program::native_token::ID,
+            && program_id != anchor_lang::solana_program::sysvar::clock::ID
+            && program_id != anchor_lang::solana_program::sysvar::rent::ID,
             ErrorCode::InvalidProgramId
         );
         
@@ -248,19 +247,23 @@ pub struct CloseProgramEntry<'info> {
 //  DATA STRUCTURES
 // ═════════════════════════════════════════════════════════════════════════════
 
+pub const MAX_PROGRAM_NAME_LEN: usize = 50;
+pub const MAX_DESCRIPTION_LEN: usize = 200;
+pub const MAX_GENERATOR_VERSION_LEN: usize = 20;
+
 #[account]
 #[derive(InitSpace)]
 pub struct ProgramEntry {
     pub program_id: Pubkey,                                        // 32
-    #[max_len(ProgramEntry::MAX_NAME_LEN)]
+    #[max_len(MAX_PROGRAM_NAME_LEN)]
     pub program_name: String,                                      // 4 + 50
-    #[max_len(ProgramEntry::MAX_DESCRIPTION_LEN)]
+    #[max_len(MAX_DESCRIPTION_LEN)]
     pub description: String,                                       // 4 + 200
     pub instruction_count: u8,                                     // 1
     pub creator: Pubkey,                                           // 32
     pub registered_at: i64,                                        // 8 (renamed from timestamp)
     pub last_updated: i64,                                         // 8 (new field)
-    #[max_len(ProgramEntry::MAX_GENERATOR_VERSION_LEN)]
+    #[max_len(MAX_GENERATOR_VERSION_LEN)]
     pub generator_version: String,                                 // 4 + 20
     pub deployment_count: u64,                                     // 8
     pub bump: u8,                                                  // 1
@@ -268,9 +271,9 @@ pub struct ProgramEntry {
 // Total space: 8 + 32 + 54 + 204 + 1 + 32 + 8 + 8 + 24 + 8 + 1 = 380 bytes
 
 impl ProgramEntry {
-    pub const MAX_NAME_LEN: usize = 50;
-    pub const MAX_DESCRIPTION_LEN: usize = 200;
-    pub const MAX_GENERATOR_VERSION_LEN: usize = 20;
+    pub const MAX_NAME_LEN: usize = MAX_PROGRAM_NAME_LEN;
+    pub const MAX_DESCRIPTION_LEN: usize = MAX_DESCRIPTION_LEN;
+    pub const MAX_GENERATOR_VERSION_LEN: usize = MAX_GENERATOR_VERSION_LEN;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
