@@ -267,7 +267,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: baseline recorded.
   - Lesson: 14
 
-- [ ] **T-041 · Anchor upgrade**
+- [x] **T-041 · Anchor upgrade**
   - Needs: T-040
   - Scope: `programs/registry/Cargo.toml`, `programs/registry/Cargo.lock`, `Anchor.toml`, `package.json`, `package-lock.json`, `programs/registry/src/**`
   - Do: `anchor --version` must be **0.31 or newer**; if it is older, write a blocker (the human upgrades with `avm`, see `setup.md`) — do **not** install it yourself. Align Rust crate versions, the TS client package (check npm for the right name for this Anchor version), and fix breaking changes. Keep behavior identical in this task.
