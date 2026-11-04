@@ -274,7 +274,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `anchor build` succeeds with the new version; IDL regenerated; the explorer's IDL copy is untouched until T-046.
   - Lesson: 14
 
-- [ ] **T-042 · Harden the registry program**
+- [x] **T-042 · Harden the registry program**
   - Needs: T-041
   - Scope: `programs/registry/src/**`, `docs/CONTRACT.md`
   - Do: apply `Agent.md` §12 — checked math, named errors for every `require!`, `InitSpace` or one source of truth for sizes, length constants, signer/`has_one` on every mutation, safe close, documented seeds, events for state changes. **No new features.** Write the account/instruction table to `docs/CONTRACT.md`.
