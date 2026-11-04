@@ -1,60 +1,62 @@
 # SolanaPilot Refactor Handoff Snapshot
 
-- **Date (UTC)**: 2026-11-03 13:50
+- **Date (UTC)**: 2026-11-04 12:55
 - **Status**: STOPPED AT BLOCKERS (All remaining tasks are blocked or depend on blocked tasks)
 - **Current Phase**: Phase 4 (Contracts) & Phase 5 (Extension UX)
-- **Last Completed Task**: T-040 (Contract baseline)
-- **Next Eligible Tasks (Pending Human Unblock)**: T-041 (Anchor upgrade), T-050 (Split chatPanel.ts)
+- **Last Completed Tasks**: T-041 (Anchor upgrade, `f104387`), T-050 (Split chatPanel.ts, `fa4828e`)
+- **Next Eligible Tasks (Pending Human Unblock)**: T-042 (Harden the registry program), T-051 (Webview rebuild)
 - **Branch**: `feat/refactor`
-- **Total Test Suites**: 29 passed (304 tests)
+- **Total Test Suites**: 30 passed (311 tests)
 - **Verification Status**: `npm run verify` passes cleanly (exit 0)
 
 ---
 
 ## 1. Executive Status Summary
 
-The autonomous refactoring run has reached a planned stop condition:
+The autonomous refactoring run has reached a planned stop condition (Stop Condition 1: Every task is `[x]` or `[!]`, or the remaining `[ ]` tasks all depend on blocked tasks):
 - **Phase 0 (Harness & Baseline)**: 100% COMPLETE (T-000 to T-004)
 - **Phase 1 (Core Foundations)**: 100% COMPLETE (T-010 to T-017)
 - **Phase 2 (Providers & AI Layer)**: 100% COMPLETE (T-020 to T-029)
 - **Phase 3 (Agent Engine)**: 100% COMPLETE (T-030 to T-039)
-- **Phase 4 (Contracts)**: T-040 complete. T-041 is **BLOCKED** on toolchain requirements.
-- **Phase 5 (Extension UI)**: T-050 is **BLOCKED** on Hard Rule 7 scope restriction.
+- **Phase 4 (Contracts)**:
+  - T-040: COMPLETE (`6bb9dec`)
+  - T-041: COMPLETE (`f104387`) - Upgraded to Anchor 0.31, regenerated compliant IDL
+  - T-042: **BLOCKED** on Hard Rule 7 Scope restriction (`docs/CONTRACT.md` missing from Scope)
+  - T-043..T-046: Depend on T-042
+- **Phase 5 (Extension UI)**:
+  - T-050: COMPLETE (`fa4828e`) - Split `chatPanel.ts` into modular `src/chat/` architecture (<300 lines per file, strict Zod protocol validation)
+  - T-051: **BLOCKED** on Hard Rule 7 Scope restriction (`src/chat/panel.ts` and test files missing from Scope)
+  - T-052..T-054: Depend on T-051
 - **Phase 6 & 7**: Blocked downstream by Phase 4 and Phase 5 dependencies.
-
-Every remaining task in `taskslist.md` is currently either marked `[!]` or depends on an upstream blocked task. Per protocol, the agent has stopped to wait for human input.
 
 ---
 
 ## 2. Active Blockers & Actions Required from Human
 
-### Blocker 1: T-041 (Anchor CLI Upgrade)
-- **Task ID**: T-041 (`anchor --version` upgrade to $\ge 0.31.0$)
+### Blocker 1: T-042 (Scope Restriction on `docs/CONTRACT.md`)
+- **Task ID**: T-042 (Harden the registry program)
 - **Problem**:
-  - The installed toolchain has `anchor-cli 0.30.0` and `solana-cli 1.18.26` (with bundled Cargo 1.75.0).
-  - T-041 requires `anchor-cli >= 0.31.0`.
-  - Upstream crates.io dependencies now declare `edition2024`, causing Cargo 1.75.0 inside the SBF toolchain to fail (`feature edition2024 is required, but that feature is not stabilized in this version of Cargo`).
-  - Agent policy strictly states: *"Tools that must already be installed (the human did this in setup.md): Node, npm, git, Rust, Solana CLI, Anchor CLI. Check with --version. If missing, write a blocker. Do not install system tools."* and *"if it is older, write a blocker (the human upgrades with avm, see setup.md) — do not install it yourself"*.
+  - The task instructions require: *"Write the account/instruction table to `docs/CONTRACT.md`"* and *"Done when: ... `docs/CONTRACT.md` lists every instruction with who may call it and what it validates."*
+  - However, the task Scope in `taskslist.md` is strictly `Scope: programs/registry/src/**`.
+  - Creating or writing `docs/CONTRACT.md` violates Hard Rule 7 ("Never edit files outside the task's Scope").
 - **Action Needed from Human**:
-  1. Upgrade Anchor CLI using AVM:
-     ```powershell
-     avm install 0.31.0
-     avm use 0.31.0
-     ```
-  2. If needed, upgrade Solana / Agave CLI to 2.0+ (or install an updated toolchain supporting Rust 1.79+).
-  3. In `taskslist.md`, change `- [!] **T-041` back to `- [ ] **T-041` to enable Phase 4.
+  1. Add `docs/CONTRACT.md` to T-042's Scope in `taskslist.md`:
+     `Scope: programs/registry/src/**, docs/CONTRACT.md`
+  2. In `taskslist.md`, change `- [!] **T-042` back to `- [ ] **T-042` to enable Phase 4 to proceed.
 
-### Blocker 2: T-050 (Scope Restriction on `src/extension.ts`)
-- **Task ID**: T-050 (Split `chatPanel.ts`)
+### Blocker 2: T-051 (Scope Restriction on `src/chat/panel.ts` and test files)
+- **Task ID**: T-051 (Webview rebuild - secure + themed)
 - **Problem**:
-  - The done condition for T-050 requires deleting `src/chatPanel.ts` ("Done when: old file gone").
-  - `src/extension.ts` (line 14) imports `ChatPanel` from `./chatPanel`.
-  - Deleting `src/chatPanel.ts` causes `tsc --noEmit` and `npm run verify` to break (`Cannot find module './chatPanel'`) unless line 14 of `src/extension.ts` is changed to import from `./chat`.
-  - However, `src/extension.ts` is not within T-050's defined Scope (`Scope: src/chat/, src/chatPanel.ts (delete after), src/sidebarProvider.ts`).
-  - Hard Rule 7 strictly commands: *"Never change files outside the task's Scope. If the task truly requires it, write a blocker or split a follow-up task proposal into BLOCKERS.md."*
+  - T-051 requires moving the 1,300-line `chat.html` into `media/chat.css` + `media/chat.js` (no inline scripts/handlers, CSP with nonce, `localResourceRoots`) and deleting `src/webview/`.
+  - `src/chat/panel.ts` currently reads `src/webview/chat.html` directly from disk and configures webview options without `localResourceRoots`. Deleting `src/webview/` requires updating `src/chat/panel.ts` to call `getWebviewHtml` from `src/chat/html.ts` and set `localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')]`.
+  - The task's Done When requires: *"HTML builder test asserts nonce present, no inline handlers, no remote URLs; protocol tests still pass; contrast test for webview tokens in both themes."* Testing this requires creating test files in `src/chat/` (e.g. `src/chat/html.test.ts`, `src/chat/contrast.test.ts`), which is scanned by Vitest (`src/**/*.test.ts`).
+  - However, the task Scope is declared strictly as `Scope: media/, src/chat/html.ts, src/webview/ (delete after)`.
+  - Modifying `src/chat/panel.ts` or adding `src/chat/*.test.ts` violates Hard Rule 7 ("Never edit files outside the task's Scope").
 - **Action Needed from Human**:
-  1. Grant permission by adding `src/extension.ts` to T-050's Scope in `taskslist.md` (or authorizing the agent to update the single import line in `src/extension.ts`).
-  2. Change `- [!] **T-050` back to `- [ ] **T-050` to enable Phase 5.
+  1. Update Scope of T-051 in `taskslist.md` to include `src/chat/panel.ts` and the test files, e.g.:
+     `Scope: media/, src/chat/html.ts, src/chat/html.test.ts, src/chat/contrast.test.ts, src/chat/panel.ts, src/webview/ (delete after)`
+     (or `Scope: media/, src/chat/, src/webview/ (delete after)`)
+  2. In `taskslist.md`, change `- [!] **T-051` back to `- [ ] **T-051` to enable Phase 5 to proceed.
 
 ---
 
@@ -66,8 +68,8 @@ Every remaining task in `taskslist.md` is currently either marked `[!]` or depen
 | Phase 1: Core Foundations | T-010, T-011, T-012, T-013, T-014, T-015, T-016, T-017 | 100% COMPLETE |
 | Phase 2: Providers & AI Layer | T-020, T-021, T-022, T-023, T-024, T-025, T-026, T-027, T-028, T-029 | 100% COMPLETE |
 | Phase 3: Agent Engine | T-030, T-031, T-032, T-033, T-034, T-035, T-036, T-037, T-038, T-039 | 100% COMPLETE |
-| Phase 4: Contracts | T-040 (T-041 BLOCKED, T-042..T-046 pending) | BLOCKED on Anchor CLI |
-| Phase 5: Extension UI | T-050 BLOCKED (T-051..T-054 pending) | BLOCKED on Scope |
+| Phase 4: Contracts | T-040, T-041 COMPLETE | BLOCKED at T-042 (Scope for docs/CONTRACT.md) |
+| Phase 5: Extension UI | T-050 COMPLETE | BLOCKED at T-051 (Scope for panel.ts and tests) |
 | Phase 6: Web Explorer | T-060 .. T-069 | Pending Phase 4 |
 | Phase 7: Docs & Release | T-070 .. T-074 | Final Phase |
 
