@@ -34,24 +34,20 @@ Active and historical blockers encountered during task execution.
   - Upgrade Solana CLI if needed (`agave-install` or `solana-install init 2.0+` supporting Cargo edition2024).
 - **Affected Tasks**: T-041, T-042, T-043, T-044, T-045, T-046.
 
-### T-041: Anchor CLI version is below requirement
-- **Task ID**: T-041
-- **Attempt**: 1
-- **Tried**: Checked `anchor --version` per task policy: "anchor --version must be 0.31 or newer; if it is older, write a blocker (the human upgrades with avm, see setup.md) — do not install it yourself."
-- **Error / Ambiguity**: Current system version is `anchor-cli 0.30.0`. Version 0.31 or newer is required.
-- **Needed from Human**:
-  - Run `avm install 0.31.0` and `avm use 0.31.0` (or newer) as specified in `setup.md`.
-- **Affected Tasks**: T-041, T-042, T-043, T-044, T-045, T-046.
+### T-041: Anchor CLI version is below requirement (RESOLVED)
+- **Status**: Resolved. Human upgraded `anchor-cli` to 0.31.0 via `avm`. Task T-041 completed.
 
-### T-050: Rule 7 Scope restriction on deleting `src/chatPanel.ts`
-- **Task ID**: T-050
-- **Attempt**: 1
-- **Tried**: Planned `src/chat/` modularization and deletion of `src/chatPanel.ts` per "old file gone".
+### T-050: Rule 7 Scope restriction on deleting `src/chatPanel.ts` (RESOLVED)
+- **Status**: Resolved. Human added `src/extension.ts` to T-050 Scope in `taskslist.md`.
+
+### T-042: Rule 7 Scope restriction on creating `docs/CONTRACT.md`
+- **Task ID**: T-042
+- **Attempt**: Immediate (Rule 7)
+- **Tried**: Inspected T-042 requirements: "Do: ... Write the account/instruction table to docs/CONTRACT.md" and "Done when: ... docs/CONTRACT.md lists every instruction with who may call it and what it validates."
 - **Error / Ambiguity**:
-  - `src/extension.ts` line 14 imports `ChatPanel` from `./chatPanel`.
-  - Deleting `src/chatPanel.ts` causes `tsc --noEmit` and `npm run verify` to fail (`Cannot find module './chatPanel'`) unless `src/extension.ts` is updated to `import { ChatPanel } from "./chat"`.
-  - However, `src/extension.ts` is not included in the Scope for T-050 (`Scope: src/chat/, src/chatPanel.ts (delete after), src/sidebarProvider.ts`).
-  - Editing `src/extension.ts` is strictly prohibited by Hard Rule 7 ("Never change files outside the task's Scope. If the task truly requires it, write a blocker").
+  - `docs/CONTRACT.md` is required by the task Do and Done When conditions.
+  - However, the task Scope is declared strictly as `Scope: programs/registry/src/**`.
+  - Creating or writing `docs/CONTRACT.md` violates Hard Rule 7 ("Never change files outside the task's Scope. If the task truly requires it, write a blocker").
 - **Needed from Human**:
-  - Add `src/extension.ts` to the Scope of T-050 (or confirm permission to update the single import line in `src/extension.ts`).
-- **Affected Tasks**: T-050, T-051, T-052, T-053, T-054.
+  - Add `docs/CONTRACT.md` to the Scope of T-042 in `taskslist.md` (e.g. `Scope: programs/registry/src/**, docs/CONTRACT.md`).
+- **Affected Tasks**: T-042, T-043, T-044, T-045, T-046.
