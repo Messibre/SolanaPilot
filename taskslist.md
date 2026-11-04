@@ -267,7 +267,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: baseline recorded.
   - Lesson: 14
 
-- [!] **T-041 · Anchor upgrade**
+- [ ] **T-041 · Anchor upgrade**
   - Needs: T-040
   - Scope: `programs/registry/Cargo.toml`, `programs/registry/Cargo.lock`, `Anchor.toml`, `package.json`, `package-lock.json`, `programs/registry/src/**`
   - Do: `anchor --version` must be **0.31 or newer**; if it is older, write a blocker (the human upgrades with `avm`, see `setup.md`) — do **not** install it yourself. Align Rust crate versions, the TS client package (check npm for the right name for this Anchor version), and fix breaking changes. Keep behavior identical in this task.
@@ -313,9 +313,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 5 — Extension chat panel and packaging
 
-- [!] **T-050 · Split `chatPanel.ts`**
+- [ ] **T-050 · Split `chatPanel.ts`**
   - Needs: T-039
-  - Scope: `src/chat/`, `src/chatPanel.ts` (delete after), `src/sidebarProvider.ts`
+  - Scope: `src/chat/`, `src/chatPanel.ts` ,  `src/extension.ts` (delete after), `src/sidebarProvider.ts`
   - Do: separate lifecycle (`ChatPanel`), message protocol (zod discriminated union), handlers (one file per message type), history store (bounded by `maxHistoryMessages`), and context builder use. No file > 300 lines. Behavior identical.
   - Done when: old file gone; protocol parse tests (valid, unknown type, extra keys, oversized text); `verify` passes.
   - Lesson: 08
