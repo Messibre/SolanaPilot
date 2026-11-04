@@ -320,7 +320,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: old file gone; protocol parse tests (valid, unknown type, extra keys, oversized text); `verify` passes.
   - Lesson: 08
 
-- [ ] **T-051 · Webview rebuild (secure + themed)**
+- [!] **T-051 · Webview rebuild (secure + themed)**
   - Needs: T-050, T-034
   - Scope: `media/`, `src/chat/html.ts`, `src/webview/` (delete after)
   - Do: move the 1,300-line `chat.html` into `media/chat.css` + `media/chat.js` (no inline script/handlers), CSP with nonce, `localResourceRoots`. Apply the design tokens from `Agent.md` §14 on top of `--vscode-*` variables so it follows dark/light. UI: provider/model selector, a **pipeline progress view** (stage list with state, current step, budget meter), plan preview with approve/cancel, build/fix log, review findings, receipt summary, friendly error with its category. Accessible: labels, focus-visible, keyboard send, `aria-live` for progress.

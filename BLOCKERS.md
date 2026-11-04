@@ -51,3 +51,19 @@ Active and historical blockers encountered during task execution.
 - **Needed from Human**:
   - Add `docs/CONTRACT.md` to the Scope of T-042 in `taskslist.md` (e.g. `Scope: programs/registry/src/**, docs/CONTRACT.md`).
 - **Affected Tasks**: T-042, T-043, T-044, T-045, T-046.
+
+### T-051: Rule 7 Scope restriction on `src/chat/panel.ts` and test files
+- **Task ID**: T-051
+- **Attempt**: Immediate (Rule 7)
+- **Tried**: Inspected T-051 requirements:
+  - Do: move 1,300-line `chat.html` into `media/chat.css` + `media/chat.js` (no inline script/handlers), CSP with nonce, `localResourceRoots`. Delete `src/webview/`.
+  - Done when: HTML builder test asserts nonce present, no inline handlers, no remote URLs; protocol tests still pass; contrast test for webview tokens in both themes.
+- **Error / Ambiguity**:
+  - `src/chat/panel.ts` currently reads `src/webview/chat.html` directly from disk and sets webview options without `localResourceRoots`. Deleting `src/webview/` requires updating `src/chat/panel.ts` to use `src/chat/html.ts` and configure `localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')]`.
+  - Writing the required tests ("HTML builder test", "contrast test for webview tokens in both themes") requires creating test files in `src/chat/` (e.g. `src/chat/html.test.ts`, `src/chat/contrast.test.ts`), as vitest is configured to scan `src/**/*.test.ts`.
+  - However, the task Scope is declared strictly as `Scope: media/, src/chat/html.ts, src/webview/ (delete after)`.
+  - Modifying `src/chat/panel.ts` or adding `src/chat/*.test.ts` violates Hard Rule 7 ("Never edit files outside the task's Scope").
+- **Needed from Human**:
+  - Update Scope of T-051 in `taskslist.md` to:
+    `Scope: media/, src/chat/html.ts, src/chat/html.test.ts, src/chat/contrast.test.ts, src/chat/panel.ts, src/webview/ (delete after)` (or `Scope: media/, src/chat/, src/webview/ (delete after)`).
+- **Affected Tasks**: T-051, T-052, T-053, T-054, T-070.
