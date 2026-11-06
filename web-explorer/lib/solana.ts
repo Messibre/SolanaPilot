@@ -22,7 +22,11 @@ const cache: {
 };
 
 function getRpcUrl() {
-  return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || DEFAULT_RPC_URL;
+  return (
+    process.env.SOLANA_RPC_URL ||
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+    DEFAULT_RPC_URL
+  );
 }
 
 function createReadOnlyWallet(): Wallet {
