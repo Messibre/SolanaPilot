@@ -313,7 +313,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 5 — Extension chat panel and packaging
 
-- [x] **T-050 · Split `chatPanel.ts`**
+- [] **T-050 · Split `chatPanel.ts`**
   - Needs: T-039
   - Scope: `src/chat/`, `src/chatPanel.ts` ,  `src/extension.ts` (delete after), `src/sidebarProvider.ts`
   - Do: separate lifecycle (`ChatPanel`), message protocol (zod discriminated union), handlers (one file per message type), history store (bounded by `maxHistoryMessages`), and context builder use. No file > 300 lines. Behavior identical.
@@ -327,7 +327,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: HTML builder test asserts nonce present, no inline handlers, no remote URLs; protocol tests still pass; contrast test for webview tokens in both themes.
   - Lesson: 04, 09
 
-- [ ] **T-052 · Telemetry sinks and commands**
+- [x] **T-052 · Telemetry sinks and commands**
   - Needs: T-051, T-013
   - Scope: `src/vscodeAdapters/`, `package.json`
   - Do: Output-channel sink and a local JSONL file sink in extension storage (redacted, size-capped with rotation); `SolanaPilot: Show Logs`, `Export Run Receipt`. **No remote telemetry.**

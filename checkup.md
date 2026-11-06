@@ -193,3 +193,4 @@ Failure signatures so far:
 | T-050 | Split chatPanel.ts | fa4828e | 2026-11-04 12:49 | verify PASS (311 tests) | 1 | DONE: split chatPanel into src/chat/ (<300 lines each), Zod protocol validation, deleted chatPanel.ts |
 | T-051 | Webview rebuild (secure + themed) | 7089384 | 2026-11-06 10:33 | verify PASS (325 tests) | 1 | DONE: media/chat.css & media/chat.js, CSP nonce, Agent.md §14 tokens, pipeline progress, WCAG contrast tests, red-green checked |
 | AUDIT | Full checkpoint (tasks 40-44, 50-51) | eb48499 | 2026-11-06 10:35 | root: verify PASS (325 tests), web-explorer: lint PASS, secrets PASS, log-stat verified | 1 | PASS |
+| T-052 | Telemetry sinks and commands | 793e503 | 2026-11-06 10:43 | verify PASS (330 tests) | 1 | DONE: OutputChannelSink, rotating JsonlFileSink, exportRunReceipt, red-green checked secret proof |
