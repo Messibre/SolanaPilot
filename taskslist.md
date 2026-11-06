@@ -380,9 +380,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `prisma validate` and `prisma generate` succeed; schema has the unique indexes above.
   - Lesson: 11
 
-- [ ] **T-064 · Auth.js with GitHub**
+- [x] **T-064 · Auth.js with GitHub**
   - Needs: T-063
-  - Scope: `web-explorer/auth.ts`, `web-explorer/app/api/auth/[...nextauth]/route.ts`, `web-explorer/lib/env.ts`
+  - Scope: `web-explorer/auth.ts`, `web-explorer/app/api/auth/[...nextauth]/route.ts`, `web-explorer/lib/env.ts`, `web-explorer/package.json`, `web-explorer/package-lock.json`, `docs/adr/0003-auth-strategy.md`, `web-explorer/lib/auth.test.ts`, `web-explorer/vitest.config.ts`
   - Do: Auth.js v5, JWT sessions, GitHub provider (env `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET`). On sign-in, upsert `User` + `Identity`. Session carries only `userId` and linked provider names.
   - Done when: unit tests of the sign-in callback logic with a fake DB; ADR `0003-auth-strategy.md` with numeric reversal trigger.
   - Lesson: 11
