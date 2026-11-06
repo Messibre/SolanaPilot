@@ -1,12 +1,12 @@
 # SolanaPilot Refactor Handoff Snapshot
 
-- **Date (UTC)**: 2026-11-04 12:55
-- **Status**: STOPPED AT BLOCKERS (All remaining tasks are blocked or depend on blocked tasks)
+- **Date (UTC)**: 2026-11-06 12:00
+- **Status**: STOPPED AT PLANNED CONDITION (All executable tasks are [x] or [!]; remaining tasks depend on blocked tasks)
 - **Current Phase**: Phase 4 (Contracts) & Phase 5 (Extension UX)
-- **Last Completed Tasks**: T-041 (Anchor upgrade, `f104387`), T-050 (Split chatPanel.ts, `fa4828e`)
-- **Next Eligible Tasks (Pending Human Unblock)**: T-042 (Harden the registry program), T-051 (Webview rebuild)
+- **Last Completed Tasks**: T-044 (New program ID, `4137796`), T-053 (Manifest & metadata, `33abfd7`)
+- **Active Blockers**: T-045 (Devnet faucet rate limits), T-054 (Rule 7 Scope restriction on `src/core/`)
 - **Branch**: `feat/refactor`
-- **Total Test Suites**: 30 passed (311 tests)
+- **Total Test Suites**: 33 passed (330 tests)
 - **Verification Status**: `npm run verify` passes cleanly (exit 0)
 
 ---
@@ -21,42 +21,46 @@ The autonomous refactoring run has reached a planned stop condition (Stop Condit
 - **Phase 4 (Contracts)**:
   - T-040: COMPLETE (`6bb9dec`)
   - T-041: COMPLETE (`f104387`) - Upgraded to Anchor 0.31, regenerated compliant IDL
-  - T-042: **BLOCKED** on Hard Rule 7 Scope restriction (`docs/CONTRACT.md` missing from Scope)
-  - T-043..T-046: Depend on T-042
-- **Phase 5 (Extension UI)**:
+  - T-042: COMPLETE (`164fd5f`) - Hardened registry contract with InitSpace, checked math, custom errors, events
+  - T-043: COMPLETE (`442f526`) - 18 Anchor integration tests passing
+  - T-044: COMPLETE (`4137796`) - New program ID `HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa`
+  - T-045: **BLOCKED [!]** on devnet SOL faucet rate limits (current balance: `0.497 SOL`, needs ~2.0 SOL)
+  - T-046: Depends on T-045
+- **Phase 5 (Extension UI & Packaging)**:
   - T-050: COMPLETE (`fa4828e`) - Split `chatPanel.ts` into modular `src/chat/` architecture (<300 lines per file, strict Zod protocol validation)
-  - T-051: **BLOCKED** on Hard Rule 7 Scope restriction (`src/chat/panel.ts` and test files missing from Scope)
-  - T-052..T-054: Depend on T-051
-- **Phase 6 & 7**: Blocked downstream by Phase 4 and Phase 5 dependencies.
+  - T-051: COMPLETE (`7089384`) - Webview rebuilt with `media/chat.css` and `media/chat.js`, CSP nonce, WCAG AA contrast tokens, pipeline progress meter
+  - T-052: COMPLETE (`793e503`) - Telemetry sinks (OutputChannel, rotating JsonlFileSink), redaction, commands
+  - T-053: COMPLETE (`33abfd7`) - Manifest standardized, non-conflicting keybindings, clean `.vscodeignore`
+  - T-054: **BLOCKED [!]** on Hard Rule 7 Scope restriction (`src/core/` missing from Scope)
+- **Phase 6 (Web Explorer, T-060 .. T-069)**: Blocked downstream by T-046 (depends on T-045).
+- **Phase 7 (Docs & Release, T-070 .. T-073)**: Blocked downstream by Phase 6 and T-054.
 
 ---
 
 ## 2. Active Blockers & Actions Required from Human
 
-### Blocker 1: T-042 (Scope Restriction on `docs/CONTRACT.md`)
-- **Task ID**: T-042 (Harden the registry program)
+### Blocker 1: T-045 (Devnet Airdrop Rate-Limited)
+- **Task ID**: T-045 (Deploy registry to devnet)
 - **Problem**:
-  - The task instructions require: *"Write the account/instruction table to `docs/CONTRACT.md`"* and *"Done when: ... `docs/CONTRACT.md` lists every instruction with who may call it and what it validates."*
-  - However, the task Scope in `taskslist.md` is strictly `Scope: programs/registry/src/**`.
-  - Creating or writing `docs/CONTRACT.md` violates Hard Rule 7 ("Never edit files outside the task's Scope").
+  - The compiled registry binary (`target/deploy/solanapilot_registry.so`) is ~255 KB and requires ~2.0 SOL rent exemption on devnet.
+  - Current deployer wallet balance is `0.49700312 SOL`.
+  - 3 bounded airdrop attempts (`solana airdrop 2`, `solana airdrop 1 --url devnet`, `solana airdrop 0.5 --url devnet`) all failed due to devnet public RPC faucet rate limits.
 - **Action Needed from Human**:
-  1. Add `docs/CONTRACT.md` to T-042's Scope in `taskslist.md`:
-     `Scope: programs/registry/src/**, docs/CONTRACT.md`
-  2. In `taskslist.md`, change `- [!] **T-042` back to `- [ ] **T-042` to enable Phase 4 to proceed.
+  1. Airdrop ~2.5 devnet SOL to deployer public key:
+     `9K7gwEsQvuRAu7J5Rd6jo2VmhTPhtc8MZAv3D9fZWjG9`
+     (e.g., using https://faucet.solana.com).
+  2. In `taskslist.md`, change `- [!] **T-045` back to `- [ ] **T-045`.
 
-### Blocker 2: T-051 (Scope Restriction on `src/chat/panel.ts` and test files)
-- **Task ID**: T-051 (Webview rebuild - secure + themed)
+### Blocker 2: T-054 (Rule 7 Scope Restriction on `src/core/`)
+- **Task ID**: T-054 (Prerequisite checks and first-run)
 - **Problem**:
-  - T-051 requires moving the 1,300-line `chat.html` into `media/chat.css` + `media/chat.js` (no inline scripts/handlers, CSP with nonce, `localResourceRoots`) and deleting `src/webview/`.
-  - `src/chat/panel.ts` currently reads `src/webview/chat.html` directly from disk and configures webview options without `localResourceRoots`. Deleting `src/webview/` requires updating `src/chat/panel.ts` to call `getWebviewHtml` from `src/chat/html.ts` and set `localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')]`.
-  - The task's Done When requires: *"HTML builder test asserts nonce present, no inline handlers, no remote URLs; protocol tests still pass; contrast test for webview tokens in both themes."* Testing this requires creating test files in `src/chat/` (e.g. `src/chat/html.test.ts`, `src/chat/contrast.test.ts`), which is scanned by Vitest (`src/**/*.test.ts`).
-  - However, the task Scope is declared strictly as `Scope: media/, src/chat/html.ts, src/webview/ (delete after)`.
-  - Modifying `src/chat/panel.ts` or adding `src/chat/*.test.ts` violates Hard Rule 7 ("Never edit files outside the task's Scope").
+  - The task's Done When requires: *"unit tests for the version parsing/decision logic in `core/`"*, and `Agent.md` §6 mandates that all pure decision logic reside in `src/core/` (zero vscode imports).
+  - However, the task Scope in `taskslist.md` is strictly `Scope: src/vscodeAdapters/, src/extension.ts`.
+  - Adding `src/core/prereqs.ts` and `src/core/prereqs.test.ts` violates Hard Rule 7 without human authorization.
 - **Action Needed from Human**:
-  1. Update Scope of T-051 in `taskslist.md` to include `src/chat/panel.ts` and the test files, e.g.:
-     `Scope: media/, src/chat/html.ts, src/chat/html.test.ts, src/chat/contrast.test.ts, src/chat/panel.ts, src/webview/ (delete after)`
-     (or `Scope: media/, src/chat/, src/webview/ (delete after)`)
-  2. In `taskslist.md`, change `- [!] **T-051` back to `- [ ] **T-051` to enable Phase 5 to proceed.
+  1. Authorize updating T-054 Scope in `taskslist.md` to:
+     `Scope: src/vscodeAdapters/, src/extension.ts, src/core/prereqs.ts, src/core/prereqs.test.ts`
+  2. In `taskslist.md`, change `- [!] **T-054` back to `- [ ] **T-054`.
 
 ---
 
@@ -68,26 +72,39 @@ The autonomous refactoring run has reached a planned stop condition (Stop Condit
 | Phase 1: Core Foundations | T-010, T-011, T-012, T-013, T-014, T-015, T-016, T-017 | 100% COMPLETE |
 | Phase 2: Providers & AI Layer | T-020, T-021, T-022, T-023, T-024, T-025, T-026, T-027, T-028, T-029 | 100% COMPLETE |
 | Phase 3: Agent Engine | T-030, T-031, T-032, T-033, T-034, T-035, T-036, T-037, T-038, T-039 | 100% COMPLETE |
-| Phase 4: Contracts | T-040, T-041 COMPLETE | BLOCKED at T-042 (Scope for docs/CONTRACT.md) |
-| Phase 5: Extension UI | T-050 COMPLETE | BLOCKED at T-051 (Scope for panel.ts and tests) |
-| Phase 6: Web Explorer | T-060 .. T-069 | Pending Phase 4 |
-| Phase 7: Docs & Release | T-070 .. T-074 | Final Phase |
+| Phase 4: Contracts | T-040, T-041, T-042, T-043, T-044 COMPLETE | BLOCKED at T-045 (Devnet faucet rate limits) |
+| Phase 5: Extension UI & Packaging | T-050, T-051, T-052, T-053 COMPLETE | BLOCKED at T-054 (Rule 7 Scope on `src/core/`) |
+| Phase 6: Web Explorer | T-060 .. T-069 | Blocked downstream by T-046 (needs T-045) |
+| Phase 7: Docs & Release | T-070 .. T-073 | Blocked downstream by Phase 6 & T-054 |
 
 ---
 
-## 4. Key Architectural Additions in Phase 3
+## 4. Key Architectural Additions in Phase 4 & 5
 
-1. **Pipeline Stages & State Machine**:
-   - `planStage` (`src/agent/stages/plan.ts`): Structured plan generation with Zod validation.
-   - `generateStage` & `writeStage` (`src/agent/stages/generate.ts`): Path containment, size caps, overwrite protection.
-   - `buildStage` & `runBuildAndFixLoop` (`src/agent/stages/build.ts`, `fix.ts`): Bounded fix loop (max 3 rounds) with compiler error parsing and error signature deduplication.
-   - `testStage` & `reviewStage` (`src/agent/stages/test.ts`, `review.ts`): Anchor TS test generator and 10-point AST/regex security reviewer.
-   - `deployStage` (`src/agent/stages/deploy.ts`): Safe devnet deployment runner with `AWAIT_DEPLOY_CONFIRM` callback, balance checks, and airdrop limits.
-   - `registerStage` (`src/agent/stages/register.ts`): Modular registry registration stage with Zod validation and `RegistryClient`.
-   - `pipelineRunner` (`src/agent/stages/pipelineRunner.ts`): Full 10-stage pipeline orchestrator connecting all stages through `PipelineStateMachine`.
-2. **Modular Registry Package (`src/registry/`)**:
-   - `client.ts`: Standalone registry client without VS Code dependencies.
-   - `validation.ts`: Zod schema validation for program names, metadata, and devnet addresses.
-   - `types.ts`: Clean interfaces and error definitions.
-3. **Frontend Generator (`src/agent/stages/frontend.ts`)**:
-   - Pure, vscode-independent frontend generator stage using structured output.
+1. **Anchor 0.31 Upgrade & Hardened Contract (`programs/registry/`)**:
+   - `InitSpace` derive macro applied to `ProgramEntry`.
+   - Named custom errors (`RegistryError`) instead of strings or magic numbers.
+   - Checked arithmetic for all counters and metadata length validations.
+   - Event emissions (`ProgramRegistered`, `ProgramUpdated`) on all state modifications.
+   - Complete documentation of instructions and validation in `docs/CONTRACT.md`.
+   - 18 Anchor integration tests passing cleanly.
+   - New program ID: `HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa`.
+
+2. **Webview Rebuild & Accessibility (`media/`, `src/chat/`)**:
+   - Completely decoupled HTML/CSS/JS (`media/chat.css`, `media/chat.js`).
+   - Secure CSP with cryptographic nonce and `localResourceRoots` restricted to `media/`.
+   - Zero inline scripts, event handlers, or remote network resources.
+   - WCAG AA color contrast validated in both light and dark themes using tokens from `Agent.md` §14.
+   - Integrated pipeline progress view (stages, budget meter, plan approval, build/fix log, receipts).
+
+3. **Telemetry & Log Sinks (`src/vscodeAdapters/logSinks.ts`)**:
+   - `OutputChannelSink` for live runtime logs.
+   - `JsonlFileSink` for rotating, size-capped local telemetry in extension storage.
+   - Defensive deep redaction prevents secrets from ever landing on disk or in logs.
+   - User commands: `solanaPilot.showLogs`, `solanaPilot.exportReceipt`.
+
+4. **Manifest & Metadata (`package.json`, `.vscodeignore`)**:
+   - Standardized package name `solanapilot` with placeholder publisher `solanapilot-dev`.
+   - Cleaned command identifiers to `solanaPilot.*`.
+   - Keybindings remapped from conflicting VS Code defaults (`Ctrl+Shift+S`, `Ctrl+Shift+G`) to `Ctrl+Alt+S` and `Ctrl+Alt+G`.
+   - `.vscodeignore` vetted with `vsce ls --no-dependencies`: output is strictly production code, assets, and licenses.
