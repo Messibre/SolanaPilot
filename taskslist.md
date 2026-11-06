@@ -394,7 +394,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests: valid; replayed nonce; expired; wrong domain; wrong signature; malformed base58; tampered message; concurrent double-use (exactly one succeeds). Red-green checked.
   - Lesson: 04, 11
 
-- [ ] **T-066 · Account linking**
+- [x] **T-066 · Account linking**
   - Needs: T-065
   - Scope: `web-explorer/lib/accounts/`, `web-explorer/app/api/account/**`, `web-explorer/app/profile/**`
   - Do: a signed-in user can link the other provider (wallet↔GitHub) after re-proving ownership; unlinking is refused if it would leave zero identities; an identity already linked to another user is refused with a clear error.

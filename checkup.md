@@ -206,3 +206,4 @@ Failure signatures so far:
 | T-064 | Auth.js with GitHub | e92ec8c | 2026-11-06 14:17 | root verify PASS (354 tests), web verify PASS (28 tests, tsc, lint) | 1 | DONE: Auth.js v5 GitHub provider, User+Identity upsert, session shaping, fake DB tests, ADR 0003 |
 | AUDIT | Full checkpoint (tasks 60-64) | e92ec8c | 2026-11-06 14:20 | root: verify PASS (354 tests), web: verify PASS (28 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-065 | Sign-In With Solana | 7d6989a | 2026-11-06 14:28 | root verify PASS (354 tests), web verify PASS (36 tests, tsc, lint) | 1 | DONE: SIWS ed25519 tweetnacl verification, atomic nonce store, /api/auth/nonce, credentials provider, wallet UI, 8 tests |
+| T-066 | Account linking | 946ec9d | 2026-11-06 14:39 | root verify PASS (354 tests), web verify PASS (42 tests, tsc, lint) | 1 | DONE: account link/unlink with ownership proof, zero-identity unlink protection, /api/account/* routes, ProfileView, 6 tests |
