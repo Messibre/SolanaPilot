@@ -1,0 +1,45 @@
+// Prisma schema for SolanaPilot Explorer
+// Supports GitHub and Solana (SIWS) authentication with multi-identity linking
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  identities Identity[]
+
+  @@map("users")
+}
+
+model Identity {
+  id                String   @id @default(cuid())
+  provider          String   // "github" | "solana"
+  providerAccountId String
+  userId            String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("identities")
+}
+
+model WalletNonce {
+  id        String    @id @default(cuid())
+  nonce     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@map("wallet_nonces")
+}
+
