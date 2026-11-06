@@ -1,16 +1,63 @@
-.git
+# Git and IDE
+.git/**
+.github/**
 .gitignore
-.vscode
-.vscode-test
-node_modules
-out
-dist
-**/*.ts
-!**/*.d.ts
-**/*.map
-**/*.test.ts
-src/**
-!src/webview/chat.html
-!out/**
+.vscode/**
+.vscode-test/**
 .DS_Store
+Thumbs.db
+*.bak
+*.swp
+*.swo
+*~
+
+# Secrets, configs, keys, build artifacts
+.env*
+*keypair*.json
+id.json
+*.pem
+*.so
+target/**
+.anchor/**
+.vercel/**
+
+# Non-extension workspace folders
+web-explorer/**
+programs/**
+tests/**
+docs/**
+ci/**
+idl/**
+scripts/**
+node_modules/**
+
+# Documentation and operational specs
+Agent.md
+taskslist.md
+checkup.md
+BLOCKERS.md
+setup.md
+REGISTRY_DEPLOYMENT.md
+
+# Build configs
+tsconfig.json
+eslint.config.mjs
+vitest.config.ts
+Anchor.toml
+esbuild.js
+
+# Source files, maps, tests
+src/**
+**/*.ts
+**/*.d.ts
+**/*.map
+**/*.test.*
 *.vsix
+
+# Out folder: only bundle entry out/extension.js, ignore maps and unbundled files
+out/**
+!out/extension.js
+
+# Media and assets
+!media/**
+!assets/**

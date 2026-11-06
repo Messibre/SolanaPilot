@@ -1,25 +1,26 @@
 {
-  "name": "solana-copilot",
-  "displayName": "SolanaPilot — AI Copilot for Solana Development",
+  "name": "solanapilot",
+  "displayName": "SolanaPilot",
   "description": "AI-powered Solana smart contract generator with devnet deployment and React frontend scaffolding.",
   "version": "1.0.0",
-  "publisher": "solana-copilot",
+  "publisher": "solanapilot-dev",
   "license": "MIT",
   "keywords": [
     "solana",
-    "blockchain",
-    "web3",
+    "ai",
     "anchor",
     "smart-contract",
-    "ai",
-    "copilot"
+    "web3",
+    "copilot",
+    "toolkit",
+    "devnet"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/solana-copilot/solanapilot"
+    "url": "https://github.com/Messibre/SolanaPilot"
   },
   "bugs": {
-    "url": "https://github.com/solana-copilot/solanapilot/issues"
+    "url": "https://github.com/Messibre/SolanaPilot/issues"
   },
   "galleryBanner": {
     "color": "#9945FF",
@@ -29,17 +30,10 @@
     "vscode": "^1.84.0"
   },
   "categories": [
-    "Programming Languages",
-    "Other"
+    "AI",
+    "Programming Languages"
   ],
-  "activationEvents": [
-    "onStartupFinished",
-    "onCommand:solanaCopilot.openChat",
-    "onCommand:solanaCopilot.setApiKey",
-    "onCommand:solanaCopilot.generateProgram",
-    "onCommand:solanaCopilot.deployToDevnet",
-    "onCommand:solanaCopilot.generateFrontend"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -77,6 +71,24 @@
         "icon": "$(export)"
       },
       {
+        "command": "solanaPilot.generateProgram",
+        "title": "Generate Smart Contract",
+        "category": "SolanaPilot",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "solanaPilot.deployToDevnet",
+        "title": "Deploy to Devnet",
+        "category": "SolanaPilot",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "solanaPilot.generateFrontend",
+        "title": "Generate React Frontend",
+        "category": "SolanaPilot",
+        "icon": "$(browser)"
+      },
+      {
         "command": "solanaCopilot.openChat",
         "title": "Open Chat (Legacy)",
         "category": "SolanaPilot",
@@ -89,19 +101,19 @@
       },
       {
         "command": "solanaCopilot.generateProgram",
-        "title": "Generate Smart Contract",
+        "title": "Generate Smart Contract (Legacy)",
         "category": "SolanaPilot",
         "icon": "$(sparkle)"
       },
       {
         "command": "solanaCopilot.deployToDevnet",
-        "title": "Deploy to Devnet",
+        "title": "Deploy to Devnet (Legacy)",
         "category": "SolanaPilot",
         "icon": "$(rocket)"
       },
       {
         "command": "solanaCopilot.generateFrontend",
-        "title": "Generate React Frontend",
+        "title": "Generate React Frontend (Legacy)",
         "category": "SolanaPilot",
         "icon": "$(browser)"
       }
@@ -109,18 +121,13 @@
     "keybindings": [
       {
         "command": "solanaPilot.openChat",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s"
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
       },
       {
-        "command": "solanaCopilot.openChat",
-        "key": "ctrl+shift+alt+s",
-        "mac": "cmd+shift+alt+s"
-      },
-      {
-        "command": "solanaCopilot.generateProgram",
-        "key": "ctrl+shift+g",
-        "mac": "cmd+shift+g"
+        "command": "solanaPilot.generateProgram",
+        "key": "ctrl+alt+g",
+        "mac": "cmd+alt+g"
       }
     ],
     "configuration": {

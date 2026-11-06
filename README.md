@@ -84,11 +84,15 @@ The explorer uses React + TypeScript, `@coral-xyz/anchor`, and `@solana/web3.js`
 
 ## VS Code commands
 
-- `SolanaPilot: Open Chat`
-- `SolanaPilot: Set Gemini API Key`
-- `SolanaPilot: Generate Smart Contract`
+- `SolanaPilot: Open Chat` (`Ctrl+Alt+S` / `Cmd+Alt+S`)
+- `SolanaPilot: Select Provider and Model`
+- `SolanaPilot: Set API Key`
+- `SolanaPilot: Test Connection`
+- `SolanaPilot: Show Logs`
+- `SolanaPilot: Export Run Receipt`
+- `SolanaPilot: Generate Smart Contract` (`Ctrl+Alt+G` / `Cmd+Alt+G`)
 - `SolanaPilot: Deploy to Devnet`
-- `SolanaPilot: Generate Frontend`
+- `SolanaPilot: Generate React Frontend`
 
 ## Registry program
 
