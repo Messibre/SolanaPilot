@@ -302,7 +302,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `solana program show` output confirms the program is deployed at the new ID; record saved. If devnet airdrop is rate-limited after 3 bounded retries, write a blocker with the wallet's **public** address.
   - Lesson: 14
 
-- [ ] **T-046 · Update consumers of the program**
+- [x] **T-046 · Update consumers of the program**
   - Needs: T-045
   - Scope: `idl/`, `web-explorer/lib/idl.json`, `web-explorer/lib/solana.ts`, `.github/workflows/deploy-registry.yml`, `ci/`
   - Do: copy the fresh IDL, update the program ID everywhere in the explorer and CI. CI must reference secrets by name only.
