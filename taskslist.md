@@ -359,9 +359,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `web-explorer: npm run verify` passes; env tests cover missing/invalid; UI shows a "demo data" banner whenever mock data is used.
   - Lesson: 14
 
-- [ ] **T-061 · Design tokens and theming**
+- [x] **T-061 · Design tokens and theming**
   - Needs: T-060
-  - Scope: `web-explorer/styles/tokens.css`, `web-explorer/app/globals.css`, `web-explorer/app/layout.tsx`, `web-explorer/components/theme-provider.tsx`, `web-explorer/components/theme-toggle.tsx`, `web-explorer/lib/contrast.test.ts`, `docs/DESIGN.md`
+  - Scope: `web-explorer/styles/tokens.css`, `web-explorer/styles/globals.css`, `web-explorer/app/globals.css`, `web-explorer/app/layout.tsx`, `web-explorer/components/theme-provider.tsx`, `web-explorer/components/theme-toggle.tsx`, `web-explorer/lib/contrast.test.ts`, `docs/DESIGN.md`
   - Do: implement the `Agent.md` §14 token table as CSS variables for dark, light and system; no-flash theme init; fonts via `next/font`; spacing/radius/type scale variables; remove duplicate `styles/globals.css`. `docs/DESIGN.md` documents tokens and the do/don't list.
   - Done when: contrast test computes ratios for every text/background pair in both themes and asserts AA; toggle persists; no hardcoded hex colors remain in components (grep check recorded in commit body).
   - Lesson: 01
