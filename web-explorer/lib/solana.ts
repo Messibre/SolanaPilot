@@ -9,7 +9,7 @@ import bs58 from "bs58";
 import idl from "./idl.json";
 import type { Program as RegistryProgram } from "./mock-data";
 
-const PROGRAM_ID = new PublicKey("Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs");
+const PROGRAM_ID = new PublicKey("HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa");
 const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 const CACHE_TTL_MS = 30_000;
 
@@ -29,6 +29,7 @@ function createReadOnlyWallet(): Wallet {
   const keypair = Keypair.generate();
 
   return {
+    payer: keypair,
     publicKey: keypair.publicKey,
     signTransaction: async () => {
       throw new Error("Read-only wallet cannot sign transactions.");
@@ -36,7 +37,7 @@ function createReadOnlyWallet(): Wallet {
     signAllTransactions: async () => {
       throw new Error("Read-only wallet cannot sign transactions.");
     },
-  } as Wallet;
+  };
 }
 
 function getConnection() {
@@ -132,7 +133,7 @@ export async function fetchRegistryEntries(): Promise<RegistryProgram[]> {
 
   try {
     const connection = getConnection();
-    const program = new Program(idl as Idl, PROGRAM_ID, getProvider());
+    const program = new Program(idl as Idl, getProvider());
     const discriminator = await accountDiscriminator("ProgramEntry");
 
     const accounts = await connection.getProgramAccounts(program.programId, {
