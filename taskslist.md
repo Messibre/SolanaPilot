@@ -295,7 +295,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `grep -r` for the old ID returns nothing outside `web-explorer/`; `anchor build` passes; `check:secrets` passes; the keypair file is untracked and ignored.
   - Lesson: 01
 
-- [!] **T-045 · Devnet deployment**
+- [x] **T-045 · Devnet deployment**
   - Needs: T-044
   - Scope: `docs/deployments.md`
   - Do: follow `Agent.md` §12: confirm devnet, balance/airdrop, `anchor build`, `anchor test`, `anchor deploy`, then `solana program show <id>`. Record program ID, slot, signature, date.

@@ -196,3 +196,4 @@ Failure signatures so far:
 | T-052 | Telemetry sinks and commands | 793e503 | 2026-11-06 10:43 | verify PASS (330 tests) | 1 | DONE: OutputChannelSink, rotating JsonlFileSink, exportRunReceipt, red-green checked secret proof |
 | T-053 | Manifest, commands and metadata | 33abfd7 | 2026-11-06 11:00 | verify PASS (330 tests), vsce ls clean | 1 | DONE: solanapilot rename, solanaPilot.* commands, keybinding fixes, .vscodeignore clean, CHANGELOG breaking renames |
 | T-054 | Prerequisite checks and first-run | 0c614a5 | 2026-11-06 12:05 | verify PASS (354 tests) | 1 | DONE: pure version parsing in core/prereqs.ts, Anchor >= 0.31 warning, session-cached checks, first-run Ollama onboarding |
+| T-045 | Devnet deployment | 33af87f | 2026-11-06 12:28 | verify PASS (354 tests), devnet deployed | 1 | DONE: deployed registry to devnet HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa slot 519298165 |
