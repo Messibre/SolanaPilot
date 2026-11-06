@@ -334,7 +334,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: test proves rotation and that a fake secret in a logged object never lands in the file.
   - Lesson: 09
 
-- [ ] **T-053 · Manifest, commands and metadata**
+- [x] **T-053 · Manifest, commands and metadata**
   - Needs: T-052
   - Scope: `package.json`, `.vscodeignore`, `CHANGELOG.md`, `README.md` (Marketplace section only)
   - Do: name `solanapilot`, displayName `SolanaPilot`, consistent command IDs `solanaPilot.*` (config namespace already uses it), remove redundant `onCommand` activation events and the eager startup activation unless justified, set a **placeholder** publisher `solanapilot-dev` (note in `setup.md` it must be replaced), repository/bugs URLs left as `https://github.com/Messibre/SolanaPilot`, fix keybindings that clash with VS Code defaults (`Ctrl+Shift+S` is Save As, `Ctrl+Shift+G` is Source Control) — pick non-conflicting chords, add categories/keywords, mark breaking renames in CHANGELOG.
