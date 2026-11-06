@@ -45,3 +45,19 @@ Active and historical blockers encountered during task execution.
 
 ### T-051: Rule 7 Scope restriction on `src/chat/panel.ts` and test files (RESOLVED)
 - **Status**: Resolved. Human authorized adding `src/chat/panel.ts`, `src/chat/html.test.ts`, and `src/chat/contrast.test.ts` to T-051 Scope.
+
+### T-045: Devnet airdrop rate-limited after 3 bounded retries
+- **Task ID**: T-045
+- **Attempt**: 3
+- **Signatures**:
+  1. `solana airdrop 2` -> `Error: airdrop request failed. This can happen when the rate limit is reached.`
+  2. `solana airdrop 1 --url devnet` -> `Error: airdrop request failed. This can happen when the rate limit is reached.`
+  3. `solana airdrop 0.5 --url devnet` -> `Error: airdrop request failed. This can happen when the rate limit is reached.`
+- **Root cause / What learned**:
+  The Solana devnet faucet public endpoint is rate-limiting airdrop requests. Current balance is `0.49700312 SOL`, which is below the ~2.0 SOL required to deploy the ~255 KB compiled program binary (`target/deploy/solanapilot_registry.so`). Per task specification: *"If devnet airdrop is rate-limited after 3 bounded retries, write a blocker with the wallet's public address."*
+- **Needed from Human**:
+  - Please fund the deployer wallet on devnet with ~2.5 SOL:
+    - Deployer Public Key: `9K7gwEsQvuRAu7J5Rd6jo2VmhTPhtc8MZAv3D9fZWjG9`
+    - Faucet URL: https://faucet.solana.com
+- **Affected Tasks**: T-046 (Update consumers of the program).
+
