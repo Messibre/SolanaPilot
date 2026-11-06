@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -12,51 +11,46 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    // Log error to error tracking service in production
-    console.error("[v0] App error:", error);
-  }, [error]);
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-      <div className="text-center max-w-md">
-        <div className="size-16 sm:size-20 rounded-xl sm:rounded-2xl bg-destructive/10 flex items-center justify-center mb-4 sm:mb-6 border border-destructive/20 mx-auto">
-          <AlertCircle className="size-8 sm:size-10 text-destructive" />
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-bg text-text">
+      <div className="text-center max-w-md rounded-lg border border-border bg-surface p-8">
+        <div className="size-12 rounded-lg bg-surface-2 flex items-center justify-center mb-3 border border-border mx-auto text-danger">
+          <AlertCircle className="size-6" />
         </div>
-        
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-          Something went wrong
+
+        <h1 className="text-lg font-semibold text-foreground mb-1">
+          Application Error
         </h1>
-        
-        <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-          An unexpected error occurred. Our team has been notified.
+
+        <p className="text-xs text-text-muted mb-6">
+          An unexpected application error occurred while rendering the page.
           {error.digest && (
-            <span className="block mt-2 font-mono text-[10px] text-muted-foreground/60">
-              Error ID: {error.digest}
+            <span className="block mt-1 font-mono text-[10px]">
+              Digest: {error.digest}
             </span>
           )}
         </p>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+
+        <div className="flex items-center justify-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={reset}
-            className="w-full sm:w-auto border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            className="border-border text-foreground hover:bg-surface-2 text-xs"
           >
-            <RefreshCw className="size-4 mr-2" />
-            Try Again
+            <RefreshCw className="size-3.5 mr-1.5" />
+            Try again
           </Button>
-          
+
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="w-full sm:w-auto"
+            className="border-border text-foreground hover:bg-surface-2 text-xs"
           >
             <Link href="/">
-              <Home className="size-4 mr-2" />
-              Go Home
+              <Home className="size-3.5 mr-1.5" />
+              Return home
             </Link>
           </Button>
         </div>

@@ -9,7 +9,7 @@ import {
 } from "react";
 import { StatsBar } from "./stats-bar";
 import { SearchControls, type SortOption } from "./search-controls";
-import { ProgramCard } from "./program-card";
+import { ProgramTable } from "./program-table";
 import { SkeletonGrid, SkeletonStats } from "./skeleton-cards";
 import { EmptyNoPrograms, EmptyNoResults } from "./empty-states";
 import { MOCK_PROGRAMS, getRegistryStats, type Program } from "@/lib/mock-data";
@@ -178,17 +178,10 @@ export function RegistryExplorer() {
             resultCount={filteredPrograms.length}
           />
 
-          {/* Programs Grid */}
+          {/* Programs Dense Table */}
           {filteredPrograms.length > 0 ? (
-            <div
-              className={`grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 transition-opacity duration-200 ${isSearchPending ? "opacity-60" : "opacity-100"}`}
-              role="feed"
-              aria-label="Program list"
-              aria-busy={isSearchPending}
-            >
-              {filteredPrograms.map((program) => (
-                <ProgramCard key={program.programId} program={program} />
-              ))}
+            <div className={`transition-opacity duration-200 ${isSearchPending ? "opacity-60" : "opacity-100"}`}>
+              <ProgramTable programs={filteredPrograms} />
             </div>
           ) : (
             <EmptyNoResults onClearSearch={handleClearSearch} />

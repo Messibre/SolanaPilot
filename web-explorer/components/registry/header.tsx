@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/", label: "Explorer", icon: Compass },
@@ -15,38 +16,38 @@ const navItems = [
 
 export function Header() {
   const pathname = usePathname();
-  
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/90 backdrop-blur-xl">
-      <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex h-14 sm:h-16 items-center justify-between">
+    <header className="sticky top-0 z-40 border-b border-border bg-surface">
+      <div className="container mx-auto px-4">
+        <div className="flex h-14 sm:h-16 items-center justify-between gap-4">
           {/* Logo */}
-          <Link 
-            href="/" 
-            className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             aria-label="SolanaPilot home"
           >
-            <Image 
+            <Image
               src="/images/logo.png"
               alt=""
-              width={36}
-              height={36}
-              className="size-8 sm:size-9 rounded-lg"
+              width={32}
+              height={32}
+              className="size-8 rounded-md"
               aria-hidden="true"
               priority
             />
             <div className="hidden xs:block">
-              <span className="font-bold text-sm sm:text-base tracking-tight gradient-text">
-                SOLANAPILOT
+              <span className="font-semibold text-sm tracking-tight text-foreground">
+                SolanaPilot
               </span>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground -mt-0.5 font-mono">
-                Registry v1.0.0
+              <p className="text-[10px] text-text-muted font-mono -mt-0.5">
+                Registry
               </p>
             </div>
           </Link>
-          
+
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-0.5" aria-label="Main navigation">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
               return (
@@ -54,10 +55,10 @@ export function Header() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                    isActive 
-                      ? "bg-primary/10 text-primary" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                    isActive
+                      ? "bg-surface-2 text-foreground font-semibold"
+                      : "text-text-muted hover:text-foreground hover:bg-surface-2/60"
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
@@ -67,13 +68,22 @@ export function Header() {
               );
             })}
           </nav>
-          
-          {/* Network Badge */}
+
+          {/* Actions: Network pill, Theme toggle, Sign-in slot */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
-              <span className="size-1.5 rounded-full bg-primary animate-pulse" aria-hidden="true" />
-              <span className="text-[10px] sm:text-xs font-medium text-primary">Devnet</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 border border-border text-[11px] font-medium text-text-muted">
+              <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+              <span>Devnet</span>
             </div>
+
+            <ThemeToggle />
+
+            <Link
+              href="/profile"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
       </div>
@@ -83,13 +93,13 @@ export function Header() {
 
 export function MobileNav() {
   const pathname = usePathname();
-  
+
   return (
-    <nav 
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/95 backdrop-blur-xl md:hidden safe-area-inset-bottom"
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface md:hidden"
       aria-label="Mobile navigation"
     >
-      <div className="flex items-center justify-around py-1.5 pb-safe">
+      <div className="flex items-center justify-around py-1.5">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
           return (
@@ -97,15 +107,13 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-w-[60px]",
-                isActive 
-                  ? "text-primary" 
-                  : "text-muted-foreground"
+                "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent min-w-[56px]",
+                isActive ? "text-accent font-semibold" : "text-text-muted hover:text-foreground"
               )}
               aria-current={isActive ? "page" : undefined}
             >
-              <item.icon className={cn("size-4", isActive && "text-primary")} aria-hidden="true" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <item.icon className="size-4" aria-hidden="true" />
+              <span>{item.label}</span>
             </Link>
           );
         })}

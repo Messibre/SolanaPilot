@@ -1,45 +1,33 @@
-import { FileQuestion, Home, ArrowLeft } from "lucide-react";
+import { FileQuestion, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background">
-      <div className="text-center max-w-md">
-        <div className="size-16 sm:size-20 rounded-xl sm:rounded-2xl bg-muted/50 flex items-center justify-center mb-4 sm:mb-6 border border-border/50 mx-auto">
-          <FileQuestion className="size-8 sm:size-10 text-muted-foreground" />
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-bg text-text">
+      <div className="text-center max-w-md rounded-lg border border-border bg-surface p-8">
+        <div className="size-12 rounded-lg bg-surface-2 flex items-center justify-center mb-3 border border-border mx-auto">
+          <FileQuestion className="size-6 text-text-muted" />
         </div>
-        
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-          Page not found
+
+        <h1 className="text-lg font-semibold text-foreground mb-1">
+          404 — Page Not Found
         </h1>
-        
-        <p className="text-xs sm:text-sm text-muted-foreground mb-6">
-          The page you&apos;re looking for doesn&apos;t exist or has been moved.
+
+        <p className="text-xs text-text-muted mb-6">
+          The requested registry page or route could not be found.
         </p>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+
+        <div className="flex items-center justify-center gap-3">
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+            className="border-border text-foreground hover:bg-surface-2 text-xs"
           >
             <Link href="/">
-              <Home className="size-4 mr-2" />
-              Go Home
-            </Link>
-          </Button>
-          
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="w-full sm:w-auto"
-          >
-            <Link href="javascript:history.back()">
-              <ArrowLeft className="size-4 mr-2" />
-              Go Back
+              <Home className="size-3.5 mr-1.5" />
+              Return to Explorer
             </Link>
           </Button>
         </div>
