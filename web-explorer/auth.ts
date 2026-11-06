@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
+import Credentials from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
+import { verifySiwsMessage, defaultNonceStore } from "@/lib/siws";
 
 export interface AuthDatabase {
   findIdentity(
@@ -136,6 +138,51 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.AUTH_GITHUB_ID,
       clientSecret: process.env.AUTH_GITHUB_SECRET,
     }),
+    Credentials({
+      id: "solana",
+      name: "Solana",
+      credentials: {
+        message: { label: "Message", type: "text" },
+        signature: { label: "Signature", type: "text" },
+      },
+      async authorize(credentials, req) {
+        if (!credentials?.message || !credentials?.signature) {
+          return null;
+        }
+
+        const message = String(credentials.message);
+        const signature = String(credentials.signature);
+
+        const host = req.headers.get("host") ?? "localhost:3000";
+        const origin = req.headers.get("origin") ?? `http://${host}`;
+
+        const verification = await verifySiwsMessage({
+          message,
+          signature,
+          expectedDomain: host,
+          expectedUri: origin,
+          nonceStore: defaultNonceStore,
+        });
+
+        if (!verification.ok) {
+          return null;
+        }
+
+        try {
+          const result = await upsertUserAndIdentity(prismaAuthDb, {
+            provider: "solana",
+            providerAccountId: verification.data.address,
+          });
+
+          return {
+            id: result.userId,
+            name: verification.data.address,
+          };
+        } catch {
+          return null;
+        }
+      },
+    }),
   ],
   session: {
     strategy: "jwt",
@@ -143,6 +190,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET,
   callbacks: {
     async signIn({ user, account }) {
+      // Credentials provider authorize already handled validation and user upsert
+      if (account?.provider === "solana") {
+        return !!user?.id;
+      }
+
       if (!account?.provider || !account.providerAccountId) {
         return false;
       }
@@ -194,4 +246,3 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
-
