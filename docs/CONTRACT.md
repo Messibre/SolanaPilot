@@ -2,7 +2,7 @@
 
 The SolanaPilot Registry (`solanapilot_registry`) is an on-chain catalog for AI-generated Solana programs. It provides programmatic provenance, immutable creator attribution, deployment telemetry, and metadata tracking.
 
-- **Program ID**: `Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs`
+- **Program ID**: `HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa`
 - **Framework**: Anchor 0.31
 - **PDA Scheme**: `["program", program_id]`
 

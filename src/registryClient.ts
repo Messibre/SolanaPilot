@@ -6,7 +6,7 @@ import * as path from "path";
 
 // Registry program ID — update after deployment with real on-chain address
 const REGISTRY_PROGRAM_ID = new PublicKey(
-  "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs",
+  "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa",
 );
 
 export interface RegistryConfig {

@@ -2,10 +2,10 @@
 anchor_version = "0.31.0"
 
 [programs.localnet]
-solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
+solanapilot_registry = "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa"
 
 [programs.devnet]
-solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
+solanapilot_registry = "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa"
 
 [provider]
 cluster = "Localnet"

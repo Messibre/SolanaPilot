@@ -100,7 +100,7 @@ describe("redact", () => {
   describe("over-redaction checks (must NOT redact valid Solana artifacts)", () => {
     it("does NOT redact standard Solana public keys or program IDs (32-44 base58 chars)", () => {
       const pubkey1 = "11111111111111111111111111111111"; // System program
-      const pubkey2 = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"; // Registry ID
+      const pubkey2 = "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa"; // Registry ID
       const pubkey3 = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"; // SPL Token
 
       expect(redactString(`Program ID: ${pubkey1}`)).toBe(`Program ID: ${pubkey1}`);

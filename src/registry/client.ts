@@ -15,7 +15,7 @@ import type {
 } from "./types";
 import { registerProgramInputSchema } from "./validation";
 
-export const DEFAULT_REGISTRY_PROGRAM_ID = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs";
+export const DEFAULT_REGISTRY_PROGRAM_ID = "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa";
 
 export interface RegistryClientOptions {
   registryProgramId?: string;

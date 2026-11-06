@@ -81,7 +81,7 @@ jobs:
             -v "$GITHUB_WORKSPACE":/workspace \
             -w /workspace \
             solanapilot-ci:latest /bin/bash -lc "set -euo pipefail; \
-              PROGRAM_ID=\"Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs\"; \
+              PROGRAM_ID=\"HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa\"; \
               echo \"Checking program at: $PROGRAM_ID\"; \
               solana program show $PROGRAM_ID --url devnet || echo \"Program not yet visible\"; \
             "
@@ -89,13 +89,13 @@ jobs:
       - name: Output Results
         run: |
           echo "=== Deployment Summary ==="
-          echo "Registry Program ID: Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
+          echo "Registry Program ID: HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa"
           echo "Deployer Address: ${{ env.DEPLOYER_KEY }}"
           echo "Network: devnet"
           echo "Cluster URL: https://api.devnet.solana.com"
           echo ""
           echo "To verify on-chain:"
-          echo "  solana program show Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs --url devnet"
+          echo "  solana program show HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa --url devnet"
 
       - name: Comment on PR (if pull request)
         if: github.event_name == 'pull_request'
@@ -107,7 +107,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `✅ **Registry Program Deployment Workflow Triggered**\n\n` +
-                    `**Program ID:** \`Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs\`\n` +
+                    `**Program ID:** \`HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa\`\n` +
                     `**Network:** Devnet\n` +
                     `**Workflow:** [View Run](${context.server_url}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
             })

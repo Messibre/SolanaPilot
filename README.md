@@ -94,7 +94,7 @@ The explorer uses React + TypeScript, `@coral-xyz/anchor`, and `@solana/web3.js`
 
 Configured registry program ID:
 
-- `Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs`
+- `HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa`
 
 Build and deploy manually:
 
