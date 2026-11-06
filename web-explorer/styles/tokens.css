@@ -1,0 +1,87 @@
+/* SolanaPilot Design Tokens (Agent.md §14) */
+
+:root {
+  /* Light Theme (Default) */
+  --bg: #F4F4F6;
+  --surface: #FFFFFF;
+  --surface-2: #EBEBEF;
+  --border: #D9D9E0;
+  --text: #17171A;
+  --text-muted: #5E5E69;
+  --accent: #7A22E0; /* Adjusted for WCAG AA >= 4.5:1 */
+  --accent-fg: #FFFFFF;
+  --success: #0E9F65;
+  --danger: #C8303F;
+
+  /* Tailwind / shadcn semantic mappings */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-muted);
+  --destructive: var(--danger);
+  --destructive-foreground: #FFFFFF;
+  --input: var(--border);
+  --ring: var(--accent);
+
+  /* Spacing Scale (Base 4px: 4, 8, 12, 16, 24, 32, 48, 64, 96) */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+  --space-24: 6rem;    /* 96px */
+
+  /* Corner Radius (8px everywhere) */
+  --radius: 0.5rem;    /* 8px */
+
+  /* Type Scale (12, 14, 16, 20, 28, 40) */
+  --text-xs: 0.75rem;   /* 12px */
+  --text-sm: 0.875rem;  /* 14px */
+  --text-base: 1rem;    /* 16px */
+  --text-lg: 1.25rem;   /* 20px */
+  --text-xl: 1.75rem;   /* 28px */
+  --text-2xl: 2.5rem;   /* 40px */
+}
+
+.dark {
+  /* Dark Theme */
+  --bg: #121214;
+  --surface: #1A1A1E;
+  --surface-2: #222228;
+  --border: #2E2E35;
+  --text: #ECECEF;
+  --text-muted: #9A9AA5;
+  --accent: #9945FF;
+  --accent-fg: #FFFFFF;
+  --success: #14F195;
+  --danger: #F05D6C;
+
+  /* Tailwind / shadcn semantic mappings */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-muted);
+  --destructive: var(--danger);
+  --destructive-foreground: #FFFFFF;
+  --input: var(--border);
+  --ring: var(--accent);
+}
