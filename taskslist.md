@@ -341,7 +341,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `npx @vscode/vsce ls` (or `package --no-dependencies` dry listing) shows no source maps, tests, `web-explorer/`, `target/`, or secrets in the package.
   - Lesson: 14
 
-- [ ] **T-054 · Prerequisite checks and first-run**
+- [!] **T-054 · Prerequisite checks and first-run**
   - Needs: T-053
   - Scope: `src/vscodeAdapters/`, `src/extension.ts`
   - Do: show missing-tool notices once per session (not every activation); "first run" flow that checks provider config and offers Ollama if no key is set. Detect `solana`/`anchor` versions and warn if Anchor < 0.31.

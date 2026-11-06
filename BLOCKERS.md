@@ -61,3 +61,14 @@ Active and historical blockers encountered during task execution.
     - Faucet URL: https://faucet.solana.com
 - **Affected Tasks**: T-046 (Update consumers of the program).
 
+### T-054: Rule 7 Scope restriction on `src/core/` for version parsing/decision logic
+- **Task ID**: T-054
+- **Attempt**: Immediate
+- **Tried**: Inspecting task requirements for T-054. The task specification requires *"unit tests for the version parsing/decision logic in `core/`"*, and Agent.md §6 requires all pure decision logic to live in `src/core/` with zero vscode imports. However, T-054 Scope is restricted to `src/vscodeAdapters/`, `src/extension.ts`.
+- **Error / Ambiguity**: Rule 7 forbids creating or editing files in `src/core/` without human authorization.
+- **Needed from Human**:
+  - Please authorize expanding T-054 Scope in `taskslist.md` to:
+    `Scope: src/vscodeAdapters/, src/extension.ts, src/core/prereqs.ts, src/core/prereqs.test.ts`
+- **Affected Tasks**: T-054.
+
+
