@@ -10,6 +10,7 @@ import {
   promptSetApiKey,
   promptSelectProviderAndModel,
   testConnection,
+  checkPrerequisitesOncePerSession,
 } from "./vscodeAdapters";
 import { ChatPanel } from "./chat";
 import { generateAndDeploy } from "./programGenerator";
@@ -19,6 +20,9 @@ import { TerminalRunner } from "./terminalRunner";
 
 export function activate(context: vscode.ExtensionContext): void {
   const statusBar = createStatusBar(context);
+
+  // Run prerequisite and first-run checks once per session in background
+  void checkPrerequisitesOncePerSession(context);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
