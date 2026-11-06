@@ -401,7 +401,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests for each rule using a fake DB.
   - Lesson: 11
 
-- [ ] **T-067 · Route protection and security headers**
+- [x] **T-067 · Route protection and security headers**
   - Needs: T-066
   - Scope: `web-explorer/middleware.ts`, `web-explorer/next.config.mjs`, `web-explorer/lib/http/`
   - Do: protect `/profile` and `/api/account/*`; security headers (CSP with nonce where feasible, `frame-ancestors 'none'`, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`); shared `apiHandler` wrapper that zod-validates input and returns uniform errors with correct status codes (400/401/403/404/429/500); in-memory rate limiter interface (swappable).
