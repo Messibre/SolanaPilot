@@ -373,9 +373,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: every component has all states from `Agent.md` §14; keyboard navigation works (documented in commit); `npm run verify` passes; no gradient text/glow/glass present (grep for `blur(`, `bg-gradient`, `text-transparent` returns nothing).
   - Lesson: 01
 
-- [ ] **T-063 · Database schema**
+- [x] **T-063 · Database schema**
   - Needs: T-060
-  - Scope: `web-explorer/prisma/schema.prisma`, `web-explorer/lib/db.ts`, `web-explorer/.env.example`, `web-explorer/package.json`
+  - Scope: `web-explorer/prisma/schema.prisma`, `web-explorer/lib/db.ts`, `web-explorer/.env.example`, `web-explorer/package.json`, `web-explorer/package-lock.json`
   - Do: Prisma + Postgres. Models: `User`, `Identity` (provider `github|solana`, providerAccountId unique per provider, userId), `WalletNonce` (nonce, expiresAt, usedAt, unique). Singleton client. Migrations committed. Do not run against any remote DB; migration generation only needs `DATABASE_URL` from the human's `.env.local` (if missing → blocker).
   - Done when: `prisma validate` and `prisma generate` succeed; schema has the unique indexes above.
   - Lesson: 11
