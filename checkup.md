@@ -198,3 +198,4 @@ Failure signatures so far:
 | T-054 | Prerequisite checks and first-run | 0c614a5 | 2026-11-06 12:05 | verify PASS (354 tests) | 1 | DONE: pure version parsing in core/prereqs.ts, Anchor >= 0.31 warning, session-cached checks, first-run Ollama onboarding |
 | T-045 | Devnet deployment | 33af87f | 2026-11-06 12:28 | verify PASS (354 tests), devnet deployed | 1 | DONE: deployed registry to devnet HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa slot 519298165 |
 | T-046 | Update consumers of the program | ebe9497 | 2026-11-06 12:35 | verify PASS (354 tests), tsc PASS | 1 | DONE: copied Anchor 0.31 IDL to explorer, updated PROGRAM_ID to HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa, 0 old ID references remain, web-explorer typecheck passes |
+| AUDIT | Full checkpoint (tasks 52-54, 45-46) | ebe9497 | 2026-11-06 12:39 | root: verify PASS (354 tests), web: lint PASS & tsc PASS, secrets PASS, log-stat verified | 1 | PASS |
