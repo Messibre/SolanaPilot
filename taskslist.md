@@ -387,9 +387,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: unit tests of the sign-in callback logic with a fake DB; ADR `0003-auth-strategy.md` with numeric reversal trigger.
   - Lesson: 11
 
-- [ ] **T-065 · Sign-In With Solana**
+- [x] **T-065 · Sign-In With Solana**
   - Needs: T-064
-  - Scope: `web-explorer/lib/siws/`, `web-explorer/app/api/auth/nonce/route.ts`, Credentials provider addition in `web-explorer/auth.ts`, `web-explorer/components/auth/`
+  - Scope: `web-explorer/lib/siws/`, `web-explorer/app/api/auth/nonce/route.ts`, `web-explorer/auth.ts`, `web-explorer/components/auth/`, `web-explorer/package.json`, `web-explorer/package-lock.json`
   - Do: `GET /api/auth/nonce` issues a random single-use nonce (5-minute expiry, stored). Client builds the sign-in message (domain, URI, nonce, issuedAt, expirationTime, statement), wallet signs; server verifies domain/URI match, nonce unused and unexpired, ed25519 signature (`tweetnacl`), then marks nonce used **atomically**. Wallet connect UI via wallet-standard/adapter (Phantom, Solflare, Backpack). Rate-limit the routes.
   - Done when: tests: valid; replayed nonce; expired; wrong domain; wrong signature; malformed base58; tampered message; concurrent double-use (exactly one succeeds). Red-green checked.
   - Lesson: 04, 11
