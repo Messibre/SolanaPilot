@@ -281,7 +281,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `anchor build` succeeds; the diff contains no new instruction; `docs/CONTRACT.md` lists every instruction with who may call it and what it validates.
   - Lesson: 04
 
-- [ ] **T-043 · Anchor tests**
+- [x] **T-043 · Anchor tests**
   - Needs: T-042
   - Scope: `tests/`, `package.json`, `Anchor.toml`
   - Do: tests for each instruction: happy path; wrong signer; string length max and max+1; duplicate registration; update by non-authority; close refunds rent to authority; closing twice fails.

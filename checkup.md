@@ -188,5 +188,6 @@ Failure signatures so far:
 | T-040 | Contract baseline | 6bb9dec | 2026-11-03 13:42 | verify PASS (304 tests) | 1 | DONE: anchor build baseline recorded, toolchain edition2024 failure documented in BLOCKERS.md |
 | T-041 | Anchor upgrade | f104387 | 2026-11-04 12:30 | verify PASS (304 tests) | 1 | DONE: anchor-cli 0.31, anchor-lang 0.31, @coral-xyz/anchor ^0.31, anchor build succeeded, IDL generated |
 | T-042 | Harden the registry program | 164fd5f | 2026-11-04 13:44 | verify PASS (311 tests), cargo test PASS (5 tests) | 1 | DONE: checked math, named errors, InitSpace, events on state changes, docs/CONTRACT.md |
+| T-043 | Anchor tests | 442f526 | 2026-11-06 10:00 | anchor test PASS (18 tests), verify PASS (311 tests) | 1 | DONE: 18 integration tests covering all instructions, error codes, limits, red-green checked |
 | T-050 | Split chatPanel.ts | fa4828e | 2026-11-04 12:49 | verify PASS (311 tests) | 1 | DONE: split chatPanel into src/chat/ (<300 lines each), Zod protocol validation, deleted chatPanel.ts |
 | T-051 | Webview rebuild (secure + themed) | — | 2026-11-04 12:53 | N/A | 1 | BLOCKED: Rule 7 scope forbids editing src/chat/panel.ts and adding tests src/chat/*.test.ts because Scope is only media/, src/chat/html.ts, src/webview/ |
