@@ -352,9 +352,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 6 — Web explorer
 
-- [ ] **T-060 · Explorer cleanup and env validation**
+- [x] **T-060 · Explorer cleanup and env validation**
   - Needs: T-046
-  - Scope: `web-explorer/package.json`, `web-explorer/package-lock.json`, `web-explorer/lib/env.ts`, `web-explorer/lib/env.test.ts`, `web-explorer/.env.example`, `web-explorer/README.md`
+  - Scope: `web-explorer/package.json`, `web-explorer/package-lock.json`, `web-explorer/vitest.config.ts`, `web-explorer/lib/env.ts`, `web-explorer/lib/env.test.ts`, `web-explorer/.env.example`, `web-explorer/README.md`, `web-explorer/components/ui/**`, `web-explorer/components/registry/registry-explorer.tsx`, `web-explorer/hooks/use-toast.ts`
   - Do: rename package to `solanapilot-explorer`; add `verify` script (typecheck, lint, test); add vitest; zod env schema (server vs public vars, fails fast with a clear message listing missing names only); remove unused `components/ui/*` and dependencies **after proving non-use by grep** (list them in the commit body). Make mock data an explicit, visibly-labeled demo mode instead of a silent fallback.
   - Done when: `web-explorer: npm run verify` passes; env tests cover missing/invalid; UI shows a "demo data" banner whenever mock data is used.
   - Lesson: 14
