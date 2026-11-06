@@ -6,3 +6,4 @@
 export * from "./secretStorage";
 export * from "./statusBar";
 export * from "./commands";
+export * from "./logSinks";

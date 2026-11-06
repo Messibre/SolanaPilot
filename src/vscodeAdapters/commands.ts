@@ -5,6 +5,7 @@
  */
 
 import * as vscode from "vscode";
+import { exportRunReceipt } from "./logSinks";
 import { getProviderKey, promptSetApiKey } from "./secretStorage";
 import { updateStatusBar } from "./statusBar";
 import { GeminiClient } from "../ai/providers/gemini";
@@ -147,3 +148,26 @@ async function createClientForTest(
 
   throw new ConfigError(`Unknown or unsupported provider '${provider}'`);
 }
+
+export function showLogs(outputChannel?: { show(preserveFocus?: boolean): void }): void {
+  if (outputChannel) {
+    outputChannel.show(true);
+  }
+}
+
+export async function exportReceiptCommand(lastReceipt?: unknown): Promise<string | undefined> {
+  const receipt = lastReceipt ?? {
+    timestamp: new Date().toISOString(),
+    status: "idle",
+    message: "No recent agent loop receipt recorded in this session.",
+  };
+
+  const exportedPath = await exportRunReceipt(receipt);
+  if (exportedPath) {
+    void vscode.window.showInformationMessage(
+      `SolanaPilot: Run receipt exported to ${exportedPath}`,
+    );
+  }
+  return exportedPath;
+}
+

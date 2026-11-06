@@ -65,6 +65,18 @@
         "category": "SolanaPilot"
       },
       {
+        "command": "solanaPilot.showLogs",
+        "title": "Show Logs",
+        "category": "SolanaPilot",
+        "icon": "$(output)"
+      },
+      {
+        "command": "solanaPilot.exportReceipt",
+        "title": "Export Run Receipt",
+        "category": "SolanaPilot",
+        "icon": "$(export)"
+      },
+      {
         "command": "solanaCopilot.openChat",
         "title": "Open Chat (Legacy)",
         "category": "SolanaPilot",
