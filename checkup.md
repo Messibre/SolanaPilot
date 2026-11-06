@@ -192,3 +192,4 @@ Failure signatures so far:
 | T-044 | New program ID | 4137796 | 2026-11-06 10:14 | anchor build PASS, secrets PASS, verify PASS (311 tests) | 1 | DONE: new program ID HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa, all references updated |
 | T-050 | Split chatPanel.ts | fa4828e | 2026-11-04 12:49 | verify PASS (311 tests) | 1 | DONE: split chatPanel into src/chat/ (<300 lines each), Zod protocol validation, deleted chatPanel.ts |
 | T-051 | Webview rebuild (secure + themed) | 7089384 | 2026-11-06 10:33 | verify PASS (325 tests) | 1 | DONE: media/chat.css & media/chat.js, CSP nonce, Agent.md §14 tokens, pipeline progress, WCAG contrast tests, red-green checked |
+| AUDIT | Full checkpoint (tasks 40-44, 50-51) | eb48499 | 2026-11-06 10:35 | root: verify PASS (325 tests), web-explorer: lint PASS, secrets PASS, log-stat verified | 1 | PASS |
