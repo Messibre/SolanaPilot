@@ -366,9 +366,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: contrast test computes ratios for every text/background pair in both themes and asserts AA; toggle persists; no hardcoded hex colors remain in components (grep check recorded in commit body).
   - Lesson: 01
 
-- [ ] **T-062 · Restyle registry UI**
+- [x] **T-062 · Restyle registry UI**
   - Needs: T-061
-  - Scope: `web-explorer/components/registry/**`, `web-explorer/app/page.tsx`, `web-explorer/app/programs/page.tsx`, `web-explorer/app/activity/page.tsx`, `web-explorer/app/not-found.tsx`, `web-explorer/app/error.tsx`
+  - Scope: `web-explorer/components/registry/**`, `web-explorer/app/page.tsx`, `web-explorer/app/programs/page.tsx`, `web-explorer/app/activity/page.tsx`, `web-explorer/app/not-found.tsx`, `web-explorer/app/error.tsx`, `web-explorer/app/profile/page.tsx`
   - Do: apply the design system: generous whitespace; programs shown as a dense, readable table/list with mono addresses and copy buttons rather than a grid of identical cards; header with theme toggle and sign-in slot; honest empty/error/loading states; accent only on buttons/icons/focus; copy written for developers. Follow the "Do NOT" list.
   - Done when: every component has all states from `Agent.md` §14; keyboard navigation works (documented in commit); `npm run verify` passes; no gradient text/glow/glass present (grep for `blur(`, `bg-gradient`, `text-transparent` returns nothing).
   - Lesson: 01
