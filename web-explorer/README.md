@@ -1,132 +1,70 @@
-# SolanaPilot Registry Web Explorer
+# solanapilot-explorer
 
-The web explorer displays SolanaPilot registry entries with resilient data loading:
+Web explorer for browsing SolanaPilot registry programs, accounts, and deployments on Solana devnet.
 
-- It tries to read live accounts from Solana devnet.
-- If live fetch fails for any reason, it falls back to local demo data.
-- Search, sort, loading skeletons, empty states, and no-match states continue to work.
-
-## Setup
-
-### Prerequisites
-
-- Node.js 18+
-- A Solana RPC endpoint with devnet access
-
-### Install and run
+## Quick Start
 
 ```bash
+# install dependencies
 npm install
+
+# run development server
 npm run dev
+
+# run full test & verification suite (typecheck, lint, test)
+npm run verify
 ```
 
-Open `http://localhost:3000` after the dev server starts.
+Open `http://localhost:3000` to browse the registry.
 
-## Environment Variable Configuration
+## Scripts
 
-Create `web-explorer/.env.local` and set the RPC endpoint:
+| Script | Command | Purpose |
+|---|---|---|
+| `npm run verify` | `npm run typecheck && npm run lint && npm run test` | Full verification suite |
+| `npm run typecheck` | `tsc --noEmit` | Strict TypeScript compiler check |
+| `npm run lint` | `eslint .` | ESLint rules check |
+| `npm run test` | `vitest run` | Unit test suite via Vitest |
+| `npm run dev` | `next dev` | Local development server |
+| `npm run build` | `next build` | Next.js production build |
+| `npm run start` | `next start` | Start production server |
+
+## Environment Variables
+
+Environment variables are validated using strict Zod schemas defined in `lib/env.ts`.
+
+See `.env.example` for starter values:
 
 ```bash
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
+# Server-only variables (never expose to the browser, never use NEXT_PUBLIC_ prefix)
+DATABASE_URL="postgresql://user:password@localhost:5432/solanapilot?sslmode=require"
+AUTH_SECRET="your-32-byte-random-auth-secret-string"
+AUTH_GITHUB_ID="your-github-oauth-client-id"
+AUTH_GITHUB_SECRET="your-github-oauth-client-secret"
+AUTH_URL="http://localhost:3000"
+SOLANA_RPC_URL="https://api.devnet.solana.com"
+NODE_ENV="development"
+
+# Public variables (accessible in browser client bundle)
+NEXT_PUBLIC_SOLANA_RPC_URL="https://api.devnet.solana.com"
+NEXT_PUBLIC_SOLANA_NETWORK="devnet"
 ```
 
-If this variable is omitted, the explorer uses the public Solana devnet RPC URL by default.
+### Server vs. Client Variables
+- **Server Variables**: Database credentials and authentication secrets must **never** be prefixed with `NEXT_PUBLIC_`. The validator immediately throws if a secret is configured with `NEXT_PUBLIC_`.
+- **Public Variables**: Only client-safe, key-less variables (such as network name or public RPC endpoint) may use `NEXT_PUBLIC_`.
 
-## Tech Stack & Architecture
+## Data Modes
 
-The explorer is built with:
+The explorer supports two operational data modes:
 
-- Next.js App Router
-- React and TypeScript
-- `@coral-xyz/anchor` for account decoding
-- `@solana/web3.js` for RPC access
-- shadcn/ui-style components for the registry UI
+1. **Devnet Live Mode**: Connects to Solana devnet via RPC (`SOLANA_RPC_URL` / `NEXT_PUBLIC_SOLANA_RPC_URL`) and decodes on-chain program accounts using Anchor 0.31 IDL.
+2. **Demo Data Mode**: When devnet RPC is unavailable, network requests fail, or no programs are registered yet, the UI explicitly displays an amber **Demo Data Mode** status banner with a manual "Retry live fetch" action. Mock data is never used as a silent fallback.
 
-Architecture overview:
+## Tech Stack
 
-- `components/registry/registry-explorer.tsx` owns the page state, loading flow, fallback behavior, and source badges
-- `lib/solana.ts` reads live registry accounts, decodes the Anchor account data, and caches the result
-- `lib/idl.json` provides the local registry IDL for client-side decoding
-- `lib/mock-data.ts` provides the demo dataset used when live fetches fail
-
-## Run locally
-
-```bash
-npm install
-npm run dev
-```
-
-Open `http://localhost:3000`.
-
-## Environment
-
-Set RPC endpoint in `.env.local`:
-
-```bash
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
-```
-
-If unset, the app defaults to `https://api.devnet.solana.com`.
-
-## Live data integration
-
-Live fetch uses:
-
-- `lib/solana.ts`: connection, Anchor program, account fetch/decode
-- `lib/idl.json`: registry IDL used for account decoding
-- `components/registry/registry-explorer.tsx`: UI state, fallback badge, and data source indicator
-
-On fetch errors, the app silently keeps rendering demo data.
-
-## Demo Flow
-
-1. The page loads the registry explorer shell immediately.
-2. The client fetches live registry accounts from Solana devnet.
-3. If the fetch succeeds, the explorer shows live entries and marks the source as `Devnet Live`.
-4. If the fetch fails or returns no data, the UI falls back to demo data and shows `Demo Data`.
-5. Users keep the same browsing state while the app switches to demo data when live fetch is unavailable.
-
-## How It Works
-
-- A read-only Anchor provider is created only when live fetching starts.
-- The app computes the `ProgramEntry` account discriminator and uses it to filter `getProgramAccounts` RPC results.
-- Each account is decoded with the local IDL and converted into the explorer's program card model.
-- Results are cached in memory for 30 seconds to reduce repeated RPC calls.
-- Any RPC or decoding failure maps to a user-friendly message, and the UI keeps working with fallback content.
-
-## Deployment Guide for Vercel
-
-This app can be deployed as a standalone Vercel project:
-
-1. Set the project root to `web-explorer`.
-2. Add `NEXT_PUBLIC_SOLANA_RPC_URL` in the Vercel environment settings.
-3. Use the default build command: `npm run build`.
-4. Deploy to production or preview as a standard Next.js application.
-5. Do not set the output directory to the repository root; Vercel should build and read `.next` from the `web-explorer` project itself.
-
-If Vercel is looking for `/vercel/path0/.next/...` instead of `/vercel/path0/web-explorer/.next/...`, the project is pointed at the wrong root.
-
-## Data source indicator
-
-The header shows the active source:
-
-- `Devnet Live` when on-chain fetch succeeds
-- `Demo Data` when fallback is active
-
-## Security notes
-
-- No private key is exposed in the UI.
-- The Anchor provider uses a generated read-only wallet object only for decoding context.
-- No transactions are signed in the explorer fetch path.
-
-## Performance
-
-Live account fetches are cached in memory with a 30-second TTL to reduce repeated RPC calls during rapid re-renders.
-
-## Stack
-
-- Next.js (App Router)
-- React + TypeScript
-- `@solana/web3.js`
-- `@coral-xyz/anchor`
-- shadcn/ui components
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript
+- **Styling**: Tailwind CSS, CSS variables
+- **Solana**: `@solana/web3.js`, `@coral-xyz/anchor`
+- **Validation**: `zod`
+- **Testing**: `vitest`

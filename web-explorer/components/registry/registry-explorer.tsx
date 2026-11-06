@@ -7,7 +7,6 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { Button } from "@/components/ui/button";
 import { StatsBar } from "./stats-bar";
 import { SearchControls, type SortOption } from "./search-controls";
 import { ProgramCard } from "./program-card";
@@ -127,6 +126,31 @@ export function RegistryExplorer() {
           devnet.
         </p>
       </div>
+
+      {/* Explicit Demo Data Mode Banner */}
+      {!isLoading && !isLive && (
+        <div
+          role="status"
+          aria-label="Demo mode banner"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs sm:text-sm text-amber-200"
+        >
+          <div className="flex items-center gap-2">
+            <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+              Demo Data Mode
+            </span>
+            <span>
+              Showing sample registry entries. Connect to Solana devnet or retry live fetch.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadPrograms()}
+            className="text-xs font-medium text-amber-300 underline underline-offset-2 hover:text-amber-100 transition-colors"
+          >
+            Retry live fetch
+          </button>
+        </div>
+      )}
 
       {/* Stats Bar */}
       {isLoading ? (
