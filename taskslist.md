@@ -288,9 +288,9 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: `anchor test` passes; at least one test per error code in the program; red-green check on two of them.
   - Lesson: 04
 
-- [ ] **T-044 · New program ID**
+- [x] **T-044 · New program ID**
   - Needs: T-043
-  - Scope: `programs/registry/src/lib.rs` (`declare_id!`), `Anchor.toml`, `idl/`, `src/registry/`, `docs/`, `README.md`, `REGISTRY_DEPLOYMENT.md`
+  - Scope: `programs/registry/src/lib.rs` (`declare_id!`), `Anchor.toml`, `idl/`, `src/registry/`, `docs/`, `README.md`, `REGISTRY_DEPLOYMENT.md`, `src/registryClient.ts`, `src/security/redact.test.ts`, `.github/workflows/deploy-registry.yml`
   - Do: generate a new keypair **into the git-ignored** `target/deploy/` path (use the Anchor/Solana tooling; never print it), read only the public key, update every occurrence of the old ID `Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs` (grep the whole repo, excluding `web-explorer` which is T-046).
   - Done when: `grep -r` for the old ID returns nothing outside `web-explorer/`; `anchor build` passes; `check:secrets` passes; the keypair file is untracked and ignored.
   - Lesson: 01
