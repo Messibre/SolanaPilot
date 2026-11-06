@@ -408,7 +408,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests: unauthenticated → 401/redirect, malformed body → 400 (never 200), oversized body → 413, rate limit → 429.
   - Lesson: 14
 
-- [ ] **T-068 · Explorer data layer**
+- [x] **T-068 · Explorer data layer**
   - Needs: T-046, T-067
   - Scope: `web-explorer/lib/solana.ts`, `web-explorer/app/api/programs/route.ts`, `web-explorer/lib/registry/**`
   - Do: move chain reads behind a server route so the RPC key stays server-side (`SOLANA_RPC_URL`; `NEXT_PUBLIC_SOLANA_RPC_URL` only as optional public fallback); zod query params with clamps (page size ≤ 50, bounded offset); cache with TTL; `/profile` lists programs whose authority equals the user's linked wallet.
