@@ -204,3 +204,4 @@ Failure signatures so far:
 | T-062 | Restyle registry UI | 61d6813 | 2026-11-06 13:29 | root verify PASS (354 tests), web verify PASS (22 tests, lint, tsc) | 1 | DONE: dense ProgramTable, mono addresses + copy buttons, ThemeToggle + sign-in slot in header, 0 gradients/blur remain, keyboard reachable |
 | T-063 | Database schema | 342cc9d | 2026-11-06 13:57 | root verify PASS (354 tests), web verify PASS (22 tests, tsc, lint) | 1 | DONE: prisma schema with User, Identity, WalletNonce, unique indexes, singleton client |
 | T-064 | Auth.js with GitHub | e92ec8c | 2026-11-06 14:17 | root verify PASS (354 tests), web verify PASS (28 tests, tsc, lint) | 1 | DONE: Auth.js v5 GitHub provider, User+Identity upsert, session shaping, fake DB tests, ADR 0003 |
+| AUDIT | Full checkpoint (tasks 60-64) | e92ec8c | 2026-11-06 14:20 | root: verify PASS (354 tests), web: verify PASS (28 tests), secrets PASS, log-stat verified | 1 | PASS |
