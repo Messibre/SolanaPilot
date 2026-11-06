@@ -191,4 +191,4 @@ Failure signatures so far:
 | T-043 | Anchor tests | 442f526 | 2026-11-06 10:00 | anchor test PASS (18 tests), verify PASS (311 tests) | 1 | DONE: 18 integration tests covering all instructions, error codes, limits, red-green checked |
 | T-044 | New program ID | 4137796 | 2026-11-06 10:14 | anchor build PASS, secrets PASS, verify PASS (311 tests) | 1 | DONE: new program ID HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa, all references updated |
 | T-050 | Split chatPanel.ts | fa4828e | 2026-11-04 12:49 | verify PASS (311 tests) | 1 | DONE: split chatPanel into src/chat/ (<300 lines each), Zod protocol validation, deleted chatPanel.ts |
-| T-051 | Webview rebuild (secure + themed) | — | 2026-11-04 12:53 | N/A | 1 | BLOCKED: Rule 7 scope forbids editing src/chat/panel.ts and adding tests src/chat/*.test.ts because Scope is only media/, src/chat/html.ts, src/webview/ |
+| T-051 | Webview rebuild (secure + themed) | 7089384 | 2026-11-06 10:33 | verify PASS (325 tests) | 1 | DONE: media/chat.css & media/chat.js, CSP nonce, Agent.md §14 tokens, pipeline progress, WCAG contrast tests, red-green checked |
