@@ -46,20 +46,21 @@ Active and historical blockers encountered during task execution.
 ### T-051: Rule 7 Scope restriction on `src/chat/panel.ts` and test files (RESOLVED)
 - **Status**: Resolved. Human authorized adding `src/chat/panel.ts`, `src/chat/html.test.ts`, and `src/chat/contrast.test.ts` to T-051 Scope.
 
-### T-045: Devnet airdrop rate-limited after 3 bounded retries
+### T-045: Devnet airdrop rate-limited / RPC faucet closed (410)
 - **Task ID**: T-045
 - **Attempt**: 3
 - **Signatures**:
   1. `solana airdrop 2` -> `Error: airdrop request failed. This can happen when the rate limit is reached.`
   2. `solana airdrop 1 --url devnet` -> `Error: airdrop request failed. This can happen when the rate limit is reached.`
-  3. `solana airdrop 0.5 --url devnet` -> `Error: airdrop request failed. This can happen when the rate limit is reached.`
+  3. Direct RPC `requestAirdrop` -> `HTTP 410: "The RPC faucet is closed on this cluster. Request test SOL at https://faucet.solana.com"`
 - **Root cause / What learned**:
-  The Solana devnet faucet public endpoint is rate-limiting airdrop requests. Current balance is `0.49700312 SOL`, which is below the ~2.0 SOL required to deploy the ~255 KB compiled program binary (`target/deploy/solanapilot_registry.so`). Per task specification: *"If devnet airdrop is rate-limited after 3 bounded retries, write a blocker with the wallet's public address."*
+  The Solana Foundation has permanently closed the RPC faucet endpoint on `api.devnet.solana.com` with HTTP 410, redirecting all devnet airdrops to the web faucet at `https://faucet.solana.com`. That site is gated by Cloudflare Turnstile anti-bot verification, which automated agents are strictly forbidden to bypass by core policy.
+  Current deployer balance is `0.49700312 SOL`, which is below the ~2.0 SOL required to deploy the ~255 KB compiled program binary (`target/deploy/solanapilot_registry.so`). Per task specification: *"If devnet airdrop is rate-limited after 3 bounded retries, write a blocker with the wallet's public address."*
 - **Needed from Human**:
-  - Please fund the deployer wallet on devnet with ~2.5 SOL:
+  - Please open https://faucet.solana.com in your browser and fund the deployer wallet on devnet with ~2.5 SOL:
     - Deployer Public Key: `9K7gwEsQvuRAu7J5Rd6jo2VmhTPhtc8MZAv3D9fZWjG9`
-    - Faucet URL: https://faucet.solana.com
-- **Affected Tasks**: T-046 (Update consumers of the program).
+  - In `taskslist.md`, change `- [!] **T-045` back to `- [ ] **T-045`.
+- **Affected Tasks**: T-046 (Update consumers of the program), and all downstream Phase 6 and Phase 7 tasks.
 
 ### T-054: Rule 7 Scope restriction on `src/core/` for version parsing/decision logic (RESOLVED)
 - **Status**: Resolved. Human authorized expanding T-054 Scope to include `src/core/prereqs.ts` and `src/core/prereqs.test.ts`.
