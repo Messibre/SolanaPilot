@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { buildWorkspaceContext } from "../contextBuilder";
@@ -7,6 +6,7 @@ import { handleShowDraft } from "./handlers/draft";
 import { handleInsertCode } from "./handlers/insertCode";
 import { PreviewManager } from "./handlers/preview";
 import { HistoryStore } from "./history";
+import { buildChatHtml } from "./html";
 import {
   safeParseIncomingWebviewMessage,
   type WebviewOutgoingMessage,
@@ -24,6 +24,10 @@ export class ChatPanel {
       return config.get<number>("maxHistoryMessages", 10);
     });
 
+    const mediaUri = context.extensionUri
+      ? vscode.Uri.joinPath(context.extensionUri, "media")
+      : vscode.Uri.file(path.join(context.extensionPath, "media"));
+
     this.panel = vscode.window.createWebviewPanel(
       "solanaCopilot",
       "SolanaPilot",
@@ -31,24 +35,27 @@ export class ChatPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
+        localResourceRoots: [mediaUri],
       },
     );
 
-    const htmlPath = path.join(
-      context.extensionPath,
-      "src",
-      "webview",
-      "chat.html",
-    );
-    try {
-      this.panel.webview.html = this.getWebviewHtml(
-        this.panel.webview,
-        htmlPath,
-      );
-    } catch (error) {
-      console.error("[SolanaPilot] Error loading chat.html:", error);
-      this.panel.webview.html = "<h1>Error loading chat interface</h1>";
-    }
+    const nonce = this.createNonce();
+    const styleUri = this.panel.webview
+      .asWebviewUri(
+        vscode.Uri.joinPath(context.extensionUri, "media", "chat.css"),
+      )
+      .toString();
+    const scriptUri = this.panel.webview
+      .asWebviewUri(
+        vscode.Uri.joinPath(context.extensionUri, "media", "chat.js"),
+      )
+      .toString();
+    this.panel.webview.html = buildChatHtml({
+      cspSource: this.panel.webview.cspSource,
+      styleUri,
+      scriptUri,
+      nonce,
+    });
 
     this.setupMessageHandler();
 
@@ -145,15 +152,6 @@ export class ChatPanel {
         this.sendToWebview({ type: "error", text: errorMessage });
       }
     });
-  }
-
-  private getWebviewHtml(webview: vscode.Webview, htmlPath: string): string {
-    const rawHtml = fs.readFileSync(htmlPath, "utf8");
-    const nonce = this.createNonce();
-
-    return rawHtml
-      .replaceAll("{{cspSource}}", webview.cspSource)
-      .replaceAll("{{nonce}}", nonce);
   }
 
   private createNonce(): string {
