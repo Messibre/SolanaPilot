@@ -52,6 +52,8 @@ target/
 # Web explorer build cache
 web-explorer/.next/
 web-explorer/node_modules/
+.vercel/
+*.tsbuildinfo
 
 # Test
 coverage/

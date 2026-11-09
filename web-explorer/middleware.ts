@@ -1,16 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { auth } from "@/auth";
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtectedPage = pathname === "/profile" || pathname.startsWith("/profile/");
   const isProtectedApi = pathname.startsWith("/api/account");
 
   if (isProtectedPage || isProtectedApi) {
-    const session = await auth();
+    // Auth.js session token cookie names for production (__Secure- prefix on HTTPS) and local dev
+    const sessionToken =
+      request.cookies.get("__Secure-authjs.session-token")?.value ||
+      request.cookies.get("authjs.session-token")?.value ||
+      request.cookies.get("__Secure-next-auth.session-token")?.value ||
+      request.cookies.get("next-auth.session-token")?.value;
 
-    if (!session?.user?.id) {
+    if (!sessionToken) {
       if (isProtectedApi) {
         return NextResponse.json(
           { error: "Unauthorized. Please sign in to access this resource." },
@@ -44,4 +48,5 @@ export const config = {
     "/api/account/:path*",
   ],
 };
+
 
