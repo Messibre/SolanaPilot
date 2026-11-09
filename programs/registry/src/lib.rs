@@ -1,6 +1,16 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs");
+declare_id!("HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa");
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  GLOBAL SIZE AND VALIDATION CONSTANTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+pub const MAX_PROGRAM_NAME_LEN: usize = 50;
+pub const MAX_DESCRIPTION_LEN: usize = 200;
+pub const MAX_GENERATOR_VERSION_LEN: usize = 20;
+pub const MIN_INSTRUCTION_COUNT: u8 = 1;
+pub const MAX_INSTRUCTION_COUNT: u8 = 50;
 
 #[program]
 pub mod solanapilot_registry {
@@ -9,10 +19,10 @@ pub mod solanapilot_registry {
     /// Register a newly generated program in the global registry
     /// 
     /// # Security
-    /// - Validates program_id is a real deployed program (not system program or wallet)
+    /// - Validates program_id is a real deployed program (not system program or sysvars)
     /// - Validates all string inputs for length and format
-    /// - Uses PDA to prevent duplicate registrations
-    /// - Emits event for off-chain indexing
+    /// - Uses PDA seeds [b"program", program_id] to prevent duplicate registrations
+    /// - Emits ProgramRegisteredEvent for off-chain indexing
     pub fn register_program(
         ctx: Context<RegisterProgram>,
         program_id: Pubkey,
@@ -25,16 +35,15 @@ pub mod solanapilot_registry {
         // INPUT VALIDATION
         // ─────────────────────────────────────────────────────────────
         
-        // Validate program_id is not a system account or common non-program keys
+        // Validate program_id is not a system account or common non-program sysvar keys
         require!(
             program_id != System::id() 
-            && program_id != solana_program::sysvar::clock::ID
-            && program_id != solana_program::sysvar::rent::ID
-            && program_id != anchor_lang::solana_program::native_token::ID,
+            && program_id != anchor_lang::solana_program::sysvar::clock::ID
+            && program_id != anchor_lang::solana_program::sysvar::rent::ID,
             ErrorCode::InvalidProgramId
         );
         
-        // Validate program name format
+        // Validate program name format (lowercase snake_case ASCII, 1..=50 chars)
         require!(
             is_valid_program_name(&program_name),
             ErrorCode::InvalidProgramName
@@ -52,7 +61,7 @@ pub mod solanapilot_registry {
         
         // Validate instruction count
         require!(
-            instruction_count > 0 && instruction_count <= 50, // reasonable upper bound
+            instruction_count >= MIN_INSTRUCTION_COUNT && instruction_count <= MAX_INSTRUCTION_COUNT,
             ErrorCode::InvalidInstructionCount
         );
         
@@ -74,13 +83,13 @@ pub mod solanapilot_registry {
         let clock = Clock::get()?;
 
         entry.program_id = program_id;
-        entry.program_name = program_name;        // No clone needed - already owned
-        entry.description = description;          // No clone needed - already owned
+        entry.program_name = program_name;
+        entry.description = description;
         entry.instruction_count = instruction_count;
         entry.creator = ctx.accounts.creator.key();
         entry.registered_at = clock.unix_timestamp;
         entry.last_updated = clock.unix_timestamp;
-        entry.generator_version = generator_version; // No clone needed
+        entry.generator_version = generator_version;
         entry.deployment_count = 0;
         entry.bump = ctx.bumps.program_entry;
 
@@ -108,8 +117,9 @@ pub mod solanapilot_registry {
     /// Increment usage counter when someone deploys a registered program
     /// 
     /// # Security
-    /// - ONLY the original creator can log deployments
-    /// - Prevents spam/inflation of deployment counts
+    /// - ONLY the original creator can log deployments (enforced via account constraint + require!)
+    /// - Uses checked arithmetic to prevent overflow
+    /// - Emits DeploymentLoggedEvent
     pub fn log_deployment(ctx: Context<LogDeployment>) -> Result<()> {
         let entry = &mut ctx.accounts.program_entry;
         
@@ -124,6 +134,12 @@ pub mod solanapilot_registry {
             .checked_add(1)
             .ok_or(ErrorCode::Overflow)?;
 
+        emit!(DeploymentLoggedEvent {
+            program_id: entry.program_id,
+            deployment_count: entry.deployment_count,
+            authority: ctx.accounts.authority.key(),
+        });
+
         msg!(
             "🚀 Program {} deployed {} times",
             entry.program_name,
@@ -136,7 +152,9 @@ pub mod solanapilot_registry {
     /// Update program metadata (description, instruction count)
     /// 
     /// # Security
-    /// - ONLY the original creator can update
+    /// - ONLY the original creator can update (enforced via has_one = creator constraint)
+    /// - Validates new input lengths and bounds
+    /// - Emits ProgramInfoUpdatedEvent
     pub fn update_program_info(
         ctx: Context<UpdateProgramInfo>,
         new_description: Option<String>,
@@ -157,7 +175,7 @@ pub mod solanapilot_registry {
         // Update instruction count if provided
         if let Some(count) = new_instruction_count {
             require!(
-                count > 0 && count <= 50,
+                count >= MIN_INSTRUCTION_COUNT && count <= MAX_INSTRUCTION_COUNT,
                 ErrorCode::InvalidInstructionCount
             );
             entry.instruction_count = count;
@@ -165,6 +183,12 @@ pub mod solanapilot_registry {
         
         // Update last_updated timestamp
         entry.last_updated = Clock::get()?.unix_timestamp;
+
+        emit!(ProgramInfoUpdatedEvent {
+            program_id: entry.program_id,
+            last_updated: entry.last_updated,
+            instruction_count: entry.instruction_count,
+        });
         
         msg!("📝 Updated program info: {}", entry.program_name);
         Ok(())
@@ -173,9 +197,15 @@ pub mod solanapilot_registry {
     /// Close a program entry and reclaim rent (ONLY creator can close)
     /// 
     /// # Security
-    /// - Prevents anyone from censoring others' entries
-    /// - Returns rent to the creator
+    /// - Prevents anyone from censoring others' entries (enforced via has_one = creator)
+    /// - Returns rent safely to the creator (close = creator)
+    /// - Emits ProgramEntryClosedEvent
     pub fn close_program_entry(ctx: Context<CloseProgramEntry>) -> Result<()> {
+        emit!(ProgramEntryClosedEvent {
+            program_id: ctx.accounts.program_entry.program_id,
+            creator: ctx.accounts.creator.key(),
+        });
+
         msg!("🗑️ Closed program entry: {}", ctx.accounts.program_entry.program_name);
         Ok(())
     }
@@ -185,6 +215,8 @@ pub mod solanapilot_registry {
 //  ACCOUNT CONTEXTS
 // ═════════════════════════════════════════════════════════════════════════════
 
+/// Context for registering a program
+/// PDA seed derivation: [b"program", program_id.as_ref()]
 #[derive(Accounts)]
 #[instruction(program_id: Pubkey)]
 pub struct RegisterProgram<'info> {
@@ -203,12 +235,15 @@ pub struct RegisterProgram<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Context for incrementing deployment count
+/// Authority must match program creator
 #[derive(Accounts)]
 pub struct LogDeployment<'info> {
     #[account(
         mut,
         seeds = [b"program", program_entry.program_id.as_ref()],
-        bump = program_entry.bump
+        bump = program_entry.bump,
+        constraint = program_entry.creator == authority.key() @ ErrorCode::Unauthorized
     )]
     pub program_entry: Account<'info, ProgramEntry>,
     
@@ -216,6 +251,8 @@ pub struct LogDeployment<'info> {
     pub authority: Signer<'info>,
 }
 
+/// Context for updating program metadata
+/// Restricted to creator via has_one
 #[derive(Accounts)]
 pub struct UpdateProgramInfo<'info> {
     #[account(
@@ -229,6 +266,8 @@ pub struct UpdateProgramInfo<'info> {
     pub creator: Signer<'info>,
 }
 
+/// Context for closing program entry and reclaiming rent
+/// Restricted to creator via has_one, rent refunded via close
 #[derive(Accounts)]
 pub struct CloseProgramEntry<'info> {
     #[account(
@@ -236,7 +275,7 @@ pub struct CloseProgramEntry<'info> {
         seeds = [b"program", program_entry.program_id.as_ref()],
         bump = program_entry.bump,
         has_one = creator @ ErrorCode::Unauthorized,
-        close = creator  // Return rent to creator
+        close = creator  // Return rent safely to creator
     )]
     pub program_entry: Account<'info, ProgramEntry>,
     
@@ -252,15 +291,15 @@ pub struct CloseProgramEntry<'info> {
 #[derive(InitSpace)]
 pub struct ProgramEntry {
     pub program_id: Pubkey,                                        // 32
-    #[max_len(ProgramEntry::MAX_NAME_LEN)]
+    #[max_len(MAX_PROGRAM_NAME_LEN)]
     pub program_name: String,                                      // 4 + 50
-    #[max_len(ProgramEntry::MAX_DESCRIPTION_LEN)]
+    #[max_len(MAX_DESCRIPTION_LEN)]
     pub description: String,                                       // 4 + 200
     pub instruction_count: u8,                                     // 1
     pub creator: Pubkey,                                           // 32
-    pub registered_at: i64,                                        // 8 (renamed from timestamp)
-    pub last_updated: i64,                                         // 8 (new field)
-    #[max_len(ProgramEntry::MAX_GENERATOR_VERSION_LEN)]
+    pub registered_at: i64,                                        // 8
+    pub last_updated: i64,                                         // 8
+    #[max_len(MAX_GENERATOR_VERSION_LEN)]
     pub generator_version: String,                                 // 4 + 20
     pub deployment_count: u64,                                     // 8
     pub bump: u8,                                                  // 1
@@ -268,9 +307,11 @@ pub struct ProgramEntry {
 // Total space: 8 + 32 + 54 + 204 + 1 + 32 + 8 + 8 + 24 + 8 + 1 = 380 bytes
 
 impl ProgramEntry {
-    pub const MAX_NAME_LEN: usize = 50;
-    pub const MAX_DESCRIPTION_LEN: usize = 200;
-    pub const MAX_GENERATOR_VERSION_LEN: usize = 20;
+    pub const MAX_NAME_LEN: usize = MAX_PROGRAM_NAME_LEN;
+    pub const MAX_DESCRIPTION_LEN: usize = MAX_DESCRIPTION_LEN;
+    pub const MAX_GENERATOR_VERSION_LEN: usize = MAX_GENERATOR_VERSION_LEN;
+    pub const MIN_INSTRUCTIONS: u8 = MIN_INSTRUCTION_COUNT;
+    pub const MAX_INSTRUCTIONS: u8 = MAX_INSTRUCTION_COUNT;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -283,6 +324,26 @@ pub struct ProgramRegisteredEvent {
     pub program_name: String,
     pub creator: Pubkey,
     pub timestamp: i64,
+}
+
+#[event]
+pub struct DeploymentLoggedEvent {
+    pub program_id: Pubkey,
+    pub deployment_count: u64,
+    pub authority: Pubkey,
+}
+
+#[event]
+pub struct ProgramInfoUpdatedEvent {
+    pub program_id: Pubkey,
+    pub last_updated: i64,
+    pub instruction_count: u8,
+}
+
+#[event]
+pub struct ProgramEntryClosedEvent {
+    pub program_id: Pubkey,
+    pub creator: Pubkey,
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -379,5 +440,12 @@ mod tests {
 
         assert_eq!(ProgramEntry::INIT_SPACE, expected);
         assert_eq!(8 + ProgramEntry::INIT_SPACE, 8 + expected);
+    }
+
+    #[test]
+    fn test_instruction_count_bounds() {
+        assert_eq!(MIN_INSTRUCTION_COUNT, 1);
+        assert_eq!(MAX_INSTRUCTION_COUNT, 50);
+        assert!(MIN_INSTRUCTION_COUNT <= MAX_INSTRUCTION_COUNT);
     }
 }

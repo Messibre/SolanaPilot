@@ -13,10 +13,11 @@ out/
 dist/
 *.vsix
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Environment variables & secrets
+.env*
+!.env.example
+*keypair*.json
+id.json
 
 # IDE
 .vscode/
@@ -51,6 +52,8 @@ target/
 # Web explorer build cache
 web-explorer/.next/
 web-explorer/node_modules/
+.vercel/
+*.tsbuildinfo
 
 # Test
 coverage/

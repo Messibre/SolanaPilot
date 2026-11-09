@@ -1,17 +1,17 @@
 [toolchain]
-anchor_version = "0.30.0"
-
-[programs.devnet]
-solanapilot_registry = "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs"
+anchor_version = "0.31.0"
 
 [programs.localnet]
-solanapilot_registry = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+solanapilot_registry = "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa"
+
+[programs.devnet]
+solanapilot_registry = "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa"
 
 [provider]
-cluster = "devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 build = "anchor build --program-name solanapilot_registry"
 deploy-devnet = "anchor deploy --program-name solanapilot_registry"
-test = "cargo test -- --nocapture"
+test = "npx vitest run --config tests/vitest.config.ts"

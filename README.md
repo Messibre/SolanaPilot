@@ -1,38 +1,73 @@
 # SolanaPilot
 
-SolanaPilot is an AI-assisted Solana development platform composed of:
+> **Autonomous, multi-provider AI toolkit for Solana hackathon builders.**  
+> Turn ideas into tested, audited, devnet-deployed Anchor programs and browse them in an on-chain registry explorer.
 
-- A VS Code extension for program generation and guided workflows
-- An Anchor registry program for on-chain program metadata
-- A Next.js explorer for viewing registered programs
+---
 
-## Setup
+## What is SolanaPilot?
 
-### Prerequisites
+SolanaPilot is an AI-assisted development suite that automates the entire Solana engineering lifecycle for hackathons. Instead of copying snippets from web search into an editor, SolanaPilot acts as an autonomous pairing partner:
 
-- VS Code 1.84+
-- Node.js 18+
-- Rust stable
-- Solana CLI 1.17+ or 1.18+
-- Anchor CLI 0.30.0
-- A Gemini API key for AI-assisted workflows
+1. **Plan & Architecture**: Synthesizes instructions, accounts, and PDA seeds from natural language.
+2. **Generate**: Writes production-grade Anchor 0.31 Rust code and TypeScript tests.
+3. **Build & Auto-Fix**: Compiles with `anchor build`, automatically parsing compiler errors and applying surgical patches (up to 3 repair cycles).
+4. **Test & Security Review**: Executes `anchor test` and evaluates code against a static smart contract security checklist.
+5. **Devnet Deploy & Register**: Deploys to Solana Devnet and records program metadata in the decentralized SolanaPilot Registry.
+6. **Web Explorer**: Browse, search, and verify programs on devnet with Sign-In With Solana (SIWS) wallet authentication.
 
-### Install
+---
+
+## 5-Minute Quick Start
+
+### 1. Prerequisites
+
+- **Node.js**: `v20.x` or later (`node --version`)
+- **Rust**: Stable toolchain (`rustc --version`)
+- **Solana CLI**: `v1.18.x` or later (`solana --version`)
+- **Anchor CLI**: `v0.31.1` (`anchor --version`)
+
+### 2. Install & Compile
+
+Clone the repository and install dependencies:
 
 ```bash
+git clone https://github.com/solanapilot/solanapilot.git
+cd solanapilot
 npm install
 npm run compile
 ```
 
-### Run the extension
-
-Open the workspace in VS Code and launch the Extension Development Host:
+Launch the extension in the VS Code Extension Development Host:
 
 ```bash
 code --extensionDevelopmentPath=.
 ```
 
-### Run the web explorer
+### 3. Configure Your AI Provider
+
+Press `F1` or `Ctrl+Shift+P` in VS Code:
+1. Run `SolanaPilot: Select Provider and Model`.
+   - Choose **Google Gemini**, **Anthropic**, **OpenAI-Compatible**, or **Ollama** (offline local models).
+2. Run `SolanaPilot: Set API Key` to store your key in VS Code `SecretStorage`.
+   - *Using Ollama?* No API key required! Pull `deepseek-r1:14b` or `llama3.1` and run completely free.
+3. Run `SolanaPilot: Test Connection` to confirm connectivity.
+
+### 4. Open Chat and Build
+
+Press `Ctrl+Alt+S` (`Cmd+Alt+S` on macOS) to open the SolanaPilot Chat Panel:
+
+```text
+Build a crowdfunding program with a target goal, funding deadline, 
+contributor tracking, and automated refunds if the goal is not met.
+```
+
+SolanaPilot initiates the autonomous 8-stage pipeline:
+`PLAN → GENERATE → VALIDATE → WRITE → BUILD → TEST → REVIEW → DEPLOY → REGISTER`
+
+### 5. Launch the Web Explorer
+
+Browse your registered program on devnet:
 
 ```bash
 cd web-explorer
@@ -40,122 +75,73 @@ npm install
 npm run dev
 ```
 
-Then open `http://localhost:3000`.
+Visit `http://localhost:3000` to inspect programs, view PDA data, or sign in with your Phantom, Solflare, or Backpack wallet.
 
-## Environment Variables
+---
 
-The extension and explorer can use the following environment values:
+## AI Providers
 
-- `GEMINI_API_KEY`: used by AI-assisted extension workflows
-- `NEXT_PUBLIC_SOLANA_RPC_URL`: optional RPC endpoint for the web explorer
+SolanaPilot features a vendor-neutral AI Gateway built with native `fetch` (no heavy third-party SDKs):
 
-For local explorer development, create `web-explorer/.env.local`:
+| Provider | Recommended Model | Best For |
+|---|---|---|
+| **Google Gemini** | `gemini-2.5-flash` / `gemini-2.5-pro` | High context window & rapid code generation |
+| **Anthropic** | `claude-3-5-sonnet-20241022` | Complex Solana systems & precision Anchor macros |
+| **OpenAI-Compatible** | `gpt-4o-mini` / OpenRouter / Groq | Flexible hosted inference & low latency |
+| **Ollama** | `deepseek-r1:14b` / `llama3.1` | **100% Free, Private, & Offline** hackathon development |
 
-```bash
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
+For setup instructions and a guide on adding custom providers, see [docs/PROVIDERS.md](docs/PROVIDERS.md).
+
+---
+
+## Architecture & Subsystems
+
+The repository is organized into three decoupled layers:
+
+```
+src/                      # VS Code Extension (TypeScript)
+  core/                   # Pure business logic (errors, config, logger, validation)
+  security/               # Defense-in-depth guards (pathGuard, urlGuard, injectionScreen)
+  ai/                     # Multi-provider gateway and structured JSON repair
+  agent/                  # 8-stage ReAct loop, tool registry, token budget, receipts
+  deploy/                 # Devnet-guarded execution runner
+  registry/               # Anchor 0.31 client for on-chain registration
+  chat/                   # Webview chat panel and message protocol
+  vscodeAdapters/         # Isolated bridge to VS Code APIs
+programs/registry/        # Anchor 0.31 registry contract (on-chain metadata)
+web-explorer/             # Next.js 16 Web Explorer (SIWS, Auth.js v5, Prisma)
 ```
 
-If the RPC variable is omitted, the explorer falls back to the public Solana devnet endpoint.
+For full sequence diagrams and architectural specifications, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Core capabilities
+---
 
-- Generate Anchor programs from natural language prompts
-- Run deployment workflows for Solana devnet
-- Register generated programs in an on-chain registry
-- Browse registry entries through a web explorer
+## Security & Guardrails
 
-## Repository components
+SolanaPilot treats all external content, prompts, and model completions as untrusted:
 
-- `src/`: VS Code extension source code
-- `programs/registry/`: Anchor registry program
-- `idl/`: registry IDL and client metadata
-- `web-explorer/`: Next.js application for registry browsing
-- `.github/workflows/`: CI/CD workflows
+- **Path Guard (`pathGuard.ts`)**: All filesystem operations are locked to the workspace sandbox. Attempts to access `..`, `.git/`, `.env*`, `*keypair*.json`, or `id.json` are rejected.
+- **SSRF Prevention (`urlGuard.ts`)**: Outbound requests enforce strict HTTPS and block private networks, link-local IPs, loopback addresses (except Ollama), and cloud metadata (`169.254.169.254`).
+- **Secret Hygiene**: Keys reside exclusively in VS Code `SecretStorage` or server environment variables. All log sinks apply automated redaction (`redact.ts`), and git commits are screened with `npm run check:secrets`.
+- **Devnet Guard (`runner.ts`)**: Transaction runners verify `solana config get` points to `devnet` or `localhost`. Mainnet execution is strictly blocked.
+- **Web Security**: Sign-In With Solana validates ed25519 signatures, uses atomic single-use nonces in PostgreSQL, enforces 100 KB payload limits, and sets strict CSP security headers.
 
-## Tech Stack & Architecture
+For the threat model and risk breakdown, see [docs/SECURITY.md](docs/SECURITY.md).
 
-SolanaPilot is organized as three cooperating layers:
+---
 
-- A VS Code extension that handles prompt-driven workflows, key storage, and deployment orchestration
-- An Anchor-based Solana registry program that stores generated program metadata on-chain
-- A Next.js App Router explorer that reads registry state and presents it with a fallback demo experience
+## Documentation Index
 
-The explorer uses React + TypeScript, `@coral-xyz/anchor`, and `@solana/web3.js` to read registry accounts from devnet. When live RPC access fails, it renders local mock data so the UI remains usable.
+- [Architecture & Mermaid Diagrams](docs/ARCHITECTURE.md)
+- [Multi-Provider Configuration & Setup](docs/PROVIDERS.md)
+- [Security Model & Countermeasures](docs/SECURITY.md)
+- [Agent Pipeline State Graph](docs/AGENT_PIPELINE.md)
+- [Registry Contract & Devnet Deployment](REGISTRY_DEPLOYMENT.md)
+- [Web Explorer Documentation](web-explorer/README.md)
+- [Rollback & Operational Runbook](docs/release/rollback.md)
+- [Changelog & Breaking Changes](CHANGELOG.md)
 
-## VS Code commands
-
-- `SolanaPilot: Open Chat`
-- `SolanaPilot: Set Gemini API Key`
-- `SolanaPilot: Generate Smart Contract`
-- `SolanaPilot: Deploy to Devnet`
-- `SolanaPilot: Generate Frontend`
-
-## Registry program
-
-Configured registry program ID:
-
-- `Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs`
-
-Build and deploy manually:
-
-```bash
-anchor build --program-name solanapilot_registry
-anchor deploy --program-name solanapilot_registry
-```
-
-For full deployment details, see `REGISTRY_DEPLOYMENT.md` and `SETUP_DEPLOYMENT_ENV.md`.
-
-## Deployment Guide for Vercel
-
-The web explorer can be deployed to Vercel as a standard Next.js app:
-
-1. Set the project root to `web-explorer`.
-2. Add `NEXT_PUBLIC_SOLANA_RPC_URL` in Vercel project settings if you want to target a custom RPC endpoint.
-3. Use the default build command from the app package, which is `npm run build`.
-4. Confirm the app has read access to your chosen RPC endpoint from the Vercel runtime.
-5. Leave the output directory on Vercel at the Next.js default; do not point it at the repository root.
-
-If you deploy the explorer separately, keep the root repository for the extension and registry workflow, and treat `web-explorer` as an independent Vercel app.
-
-## Web explorer
-
-Run locally:
-
-```bash
-cd web-explorer
-npm install
-npm run dev
-```
-
-Then open `http://localhost:3000`.
-
-## Demo Flow
-
-1. Open the VS Code extension and generate or deploy a program.
-2. Register the generated program in the on-chain registry.
-3. Open the web explorer to view the registry list.
-4. The explorer first tries to load live devnet registry data.
-5. If devnet is unavailable, it falls back to demo data and keeps the browsing experience active.
-
-## How It Works
-
-- The extension coordinates generation and deployment tasks.
-- The registry program stores program metadata on-chain.
-- The web explorer fetches registry accounts from devnet, decodes them with the local IDL, and caches the result for a short period.
-- If the live fetch fails, the explorer preserves the UI state and renders local demo data instead of breaking the page.
-
-## Security notes
-
-- API keys are stored in VS Code SecretStorage
-- File writes are scoped to the active workspace
-- Deployment commands run in explicit terminal flows
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with tests or validation notes
-4. Open a pull request
+---
 
 ## License
 

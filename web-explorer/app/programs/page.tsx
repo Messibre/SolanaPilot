@@ -15,34 +15,34 @@ export default function MyProgramsPage() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      
-      <div className="min-h-screen flex flex-col">
+
+      <div className="min-h-screen flex flex-col bg-bg text-text">
         <Header />
-        
-        <main 
+
+        <main
           id="main-content"
-          className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8"
+          className="flex-1 container mx-auto px-4 py-8"
           tabIndex={-1}
         >
-          <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4 text-center">
-            <div 
-              className="size-16 sm:size-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-secondary/20 to-primary/10 flex items-center justify-center mb-4 sm:mb-6 border border-secondary/20"
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-lg border border-border bg-surface">
+            <div
+              className="size-12 rounded-lg bg-surface-2 flex items-center justify-center mb-3 border border-border"
               aria-hidden="true"
             >
-              <FolderCode className="size-8 sm:size-10 text-secondary/60" />
+              <FolderCode className="size-6 text-accent" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-              My Programs
+            <h1 className="text-xl font-semibold text-foreground mb-1">
+              My Registered Programs
             </h1>
-            <p className="text-muted-foreground text-xs sm:text-sm max-w-sm mb-4 sm:mb-6">
-              Connect your wallet to view and manage your registered Solana programs.
+            <p className="text-text-muted text-xs max-w-sm mb-5">
+              Connect your Solana devnet wallet to manage authority, inspect deployments, and review metadata for your registered programs.
             </p>
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm">
+            <Button size="sm" className="bg-accent text-accent-fg hover:opacity-90 text-xs">
               Connect Wallet
             </Button>
           </div>
         </main>
-        
+
         <Footer />
         <MobileNav />
       </div>

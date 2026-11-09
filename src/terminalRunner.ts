@@ -1,31 +1,12 @@
 import { spawn } from "child_process";
 import * as fs from "fs";
-import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
-
-const DEPLOY_COMMANDS = {
-  setDevnet: "solana config set --url devnet",
-  airdrop: "solana airdrop 2",
-  build: "anchor build",
-  deploy: "anchor deploy",
-} as const;
+import { runDeploy as runDeployFromModule } from "./deploy/deployRunner";
 
 const DEPLOY_MESSAGES = {
-  start: "SolanaPilot - Deploying to Devnet",
-  config: "Configuring Solana CLI to devnet...",
-  airdrop: "Airdropping SOL for deployment fees...",
-  build: "Building Anchor program (this may take a few minutes)...",
-  deploy: "Deploying to devnet...",
   warning:
     "Security note: your configured Solana keypair will be used. Review the target workspace before deploying.",
-} as const;
-
-const MARKERS = {
-  airdropFailed: "AIRDROP_FAILED",
-  buildFailed: "BUILD_FAILED",
-  deploySuccess: "DEPLOY_SUCCESS",
-  deployFailed: "DEPLOY_FAILED",
 } as const;
 
 export class TerminalRunner {
@@ -251,85 +232,9 @@ export class TerminalRunner {
     });
   }
 
-  private buildDeployScript(
-    workspaceRoot: string,
-    markerFile: string,
-    outputFile: string,
-  ): string {
-    const lines: string[] = [];
-    const add = (line: string) => lines.push(line);
-
-    // Set HOME environment variable as the first line on Windows
-    if (process.platform === "win32") {
-      add(`$env:HOME = $env:USERPROFILE`);
-      add(`Write-Host "HOME environment variable set to: $env:HOME"`);
-    }
-
-    add(this.buildChangeDirectoryCommand(workspaceRoot));
-    add(this.appendOutputLine(outputFile, ""));
-    add(
-      this.appendOutputLine(
-        outputFile,
-        "========================================",
-      ),
-    );
-    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.start));
-    add(
-      this.appendOutputLine(
-        outputFile,
-        "========================================",
-      ),
-    );
-    add(this.appendOutputLine(outputFile, ""));
-    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.config));
-    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.setDevnet, outputFile));
-    add(this.appendOutputLine(outputFile, ""));
-    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.build));
-
-    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.build, outputFile));
-
-    if (process.platform === "win32") {
-      add("if ($LASTEXITCODE -ne 0) {");
-      add(`  ${this.appendOutputLine(outputFile, MARKERS.buildFailed)}`);
-      add(`  ${this.writeMarker(markerFile, MARKERS.buildFailed)}`);
-      add("  exit 1");
-      add("}");
-    } else {
-      add("if [ $? -ne 0 ]; then");
-      add(`  ${this.appendOutputLine(outputFile, MARKERS.buildFailed)}`);
-      add(`  ${this.writeMarker(markerFile, MARKERS.buildFailed)}`);
-      add("  exit 1");
-      add("fi");
-    }
-
-    add(this.appendOutputLine(outputFile, ""));
-    add(this.appendOutputLine(outputFile, DEPLOY_MESSAGES.deploy));
-    add(this.pipeCommandToOutput(DEPLOY_COMMANDS.deploy, outputFile));
-
-    if (process.platform === "win32") {
-      add("if ($LASTEXITCODE -eq 0) {");
-      add(`  ${this.appendOutputLine(outputFile, MARKERS.deploySuccess)}`);
-      add(`  ${this.writeMarker(markerFile, "SUCCESS")}`);
-      add("} else {");
-      add(`  ${this.appendOutputLine(outputFile, MARKERS.deployFailed)}`);
-      add(`  ${this.writeMarker(markerFile, "FAILED")}`);
-      add("}");
-    } else {
-      add("if [ $? -eq 0 ]; then");
-      add(`  ${this.appendOutputLine(outputFile, MARKERS.deploySuccess)}`);
-      add(`  ${this.writeMarker(markerFile, "SUCCESS")}`);
-      add("else");
-      add(`  ${this.appendOutputLine(outputFile, MARKERS.deployFailed)}`);
-      add(`  ${this.writeMarker(markerFile, "FAILED")}`);
-      add("fi");
-    }
-
-    return lines.join("\n");
-  }
-
   public async runDeploy(workspaceRoot: string): Promise<void> {
     const confirmed = await vscode.window.showWarningMessage(
-      `${DEPLOY_MESSAGES.warning}\n\nThis runs the full devnet deploy flow in the integrated terminal.`,
+      `${DEPLOY_MESSAGES.warning}\n\nThis runs the full devnet deploy flow.`,
       { modal: true },
       "Proceed with Devnet Deploy",
       "Cancel",
@@ -340,114 +245,24 @@ export class TerminalRunner {
       return;
     }
 
-    this.terminal?.dispose();
-    this.terminal =
-      process.platform === "win32"
-        ? vscode.window.createTerminal({
-            name: "SolanaPilot Deploy",
-            shellPath: this.getWindowsCmdPath(),
-            iconPath: new vscode.ThemeIcon("rocket"),
-            message: "SolanaPilot deployment terminal",
-          })
-        : vscode.window.createTerminal({
-            name: "SolanaPilot Deploy",
-            iconPath: new vscode.ThemeIcon("rocket"),
-            message: "SolanaPilot deployment terminal",
-          });
+    const outputChannel = vscode.window.createOutputChannel("SolanaPilot Deploy");
+    outputChannel.show(true);
 
-    const terminal = this.terminal;
-    terminal.show(true);
-
-    const tempDir = os.tmpdir();
-    const markerId = Date.now();
-    const markerFile = path.join(
-      tempDir,
-      `solanapilot-deploy-${markerId}.marker`,
-    );
-    const outputFile = path.join(
-      tempDir,
-      `solanapilot-deploy-${markerId}.output`,
-    );
-    const scriptFile = path.join(tempDir, `solanapilot-deploy-${markerId}.ps1`);
-    const script = this.buildDeployScript(
+    const result = await runDeployFromModule({
       workspaceRoot,
-      markerFile,
-      outputFile,
-    );
-
-    fs.writeFileSync(scriptFile, script, "utf8");
-
-    const command =
-      process.platform === "win32"
-        ? `"${this.getWindowsPowerShellPath()}" -NoLogo -NoProfile -ExecutionPolicy Bypass -File ${this.quoteForCmd(scriptFile)}`
-        : `pwsh -NoLogo -NoProfile -File ${this.quoteForShell(scriptFile)}`;
-
-    terminal.sendText(command, true);
-
-    await new Promise<void>((resolve) => {
-      let checkCount = 0;
-      const maxChecks = 360;
-
-      const checkCompletion = async () => {
-        checkCount++;
-
-        if (checkCount > maxChecks) {
-          this.cleanupTempFiles(markerFile, outputFile, scriptFile);
-          vscode.window.showWarningMessage(
-            "Deployment timed out after 6 minutes. Check the terminal for progress.",
-          );
-          resolve();
-          return;
-        }
-
-        if (!fs.existsSync(markerFile)) {
-          setTimeout(checkCompletion, 1000);
-          return;
-        }
-
-        const marker = fs.readFileSync(markerFile, "utf8").trim();
-        const output = fs.existsSync(outputFile)
-          ? fs.readFileSync(outputFile, "utf8")
-          : "";
-
-        if (marker === "SUCCESS") {
-          const programId = this.extractProgramId(output);
-          await this.showDeploySuccessNotification(programId);
-        } else if (marker === MARKERS.buildFailed) {
-          await this.showBuildFailedNotification();
-        } else if (marker === "FAILED") {
-          await this.showDeployFailedNotification();
-        }
-
-        if (output.includes(MARKERS.airdropFailed)) {
-          await this.showAirdropFailedNotification();
-        }
-
-        this.cleanupTempFiles(markerFile, outputFile, scriptFile);
-        resolve();
-      };
-
-      void checkCompletion();
+      onOutput: (line) => outputChannel.appendLine(line),
     });
-  }
 
-  private cleanupTempFiles(
-    markerFile: string,
-    outputFile: string,
-    scriptFile?: string,
-  ): void {
-    try {
-      if (fs.existsSync(markerFile)) {
-        fs.unlinkSync(markerFile);
+    if (result.ok) {
+      await this.showDeploySuccessNotification(result.programId ?? null);
+    } else {
+      if (result.step === "build") {
+        await this.showBuildFailedNotification();
+      } else if (result.step === "airdrop") {
+        await this.showAirdropFailedNotification();
+      } else {
+        await this.showDeployFailedNotification();
       }
-      if (fs.existsSync(outputFile)) {
-        fs.unlinkSync(outputFile);
-      }
-      if (scriptFile && fs.existsSync(scriptFile)) {
-        fs.unlinkSync(scriptFile);
-      }
-    } catch {
-      // Ignore cleanup failures.
     }
   }
 

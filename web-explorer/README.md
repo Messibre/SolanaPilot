@@ -1,132 +1,99 @@
-# SolanaPilot Registry Web Explorer
+# SolanaPilot Web Explorer
 
-The web explorer displays SolanaPilot registry entries with resilient data loading:
+A fast, developer-friendly web explorer for browsing SolanaPilot registry programs, accounts, and deployments on Solana devnet.
 
-- It tries to read live accounts from Solana devnet.
-- If live fetch fails for any reason, it falls back to local demo data.
-- Search, sort, loading skeletons, empty states, and no-match states continue to work.
+---
 
-## Setup
+## 1. Features
 
-### Prerequisites
+- **Dense Registry Table**: High-information density table displaying program names, 32-byte base58 addresses, creator authorities, deployment counts, and version tags.
+- **Theme Support**: First-class dark, light, and system theme modes following the 60/30/10 developer tool design system (WCAG AA compliant contrast).
+- **Dual Authentication (Auth.js v5)**:
+  - **Sign-In With Solana (SIWS)**: Cryptographic wallet sign-in with Phantom, Solflare, and Backpack using ed25519 signature checks (`tweetnacl`).
+  - **GitHub OAuth**: Developer sign-in for linking hackathon repos.
+- **Multi-Identity Account Linking**: Connect both a Solana wallet and GitHub profile to a single user account at `/profile`.
+- **Security by Default**:
+  - Route protection middleware for `/profile` and `/api/account/*`.
+  - Security headers: CSP `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`.
+  - API handler enforcing 100 KB request size limits (returns HTTP 413) and strict Zod validation (returns HTTP 400).
+  - Sliding-window rate limiting on sensitive authentication routes.
+- **Observability**:
+  - `/api/health`: Lightweight process liveness probe (HTTP 200).
+  - `/api/ready`: Dependency readiness probe verifying environment configuration, PostgreSQL database reachability, and Solana RPC health (HTTP 200 or 503).
+  - Automated smoke runner (`scripts/smoke.mjs`).
 
-- Node.js 18+
-- A Solana RPC endpoint with devnet access
+---
 
-### Install and run
+## 2. Quick Start
 
 ```bash
+# Install dependencies
 npm install
+
+# Run development server
 npm run dev
+
+# Run full verification suite (typecheck + lint + unit tests)
+npm run verify
 ```
 
-Open `http://localhost:3000` after the dev server starts.
+Open `http://localhost:3000` in your browser.
 
-## Environment Variable Configuration
+---
 
-Create `web-explorer/.env.local` and set the RPC endpoint:
+## 3. Environment Variables
+
+Environment variables are validated using strict Zod schemas defined in `lib/env.ts`.
+
+Copy `.env.example` to `web-explorer/.env.local`:
 
 ```bash
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
+# Server-only variables (never expose to the browser, never use NEXT_PUBLIC_ prefix)
+DATABASE_URL="postgresql://user:password@localhost:5432/solanapilot?sslmode=require"
+AUTH_SECRET="your-32-byte-random-auth-secret-string"
+AUTH_GITHUB_ID="your-github-oauth-client-id"
+AUTH_GITHUB_SECRET="your-github-oauth-client-secret"
+AUTH_URL="http://localhost:3000"
+SOLANA_RPC_URL="https://api.devnet.solana.com"
+NODE_ENV="development"
+
+# Public variables (accessible in browser client bundle)
+NEXT_PUBLIC_SOLANA_RPC_URL="https://api.devnet.solana.com"
+NEXT_PUBLIC_SOLANA_NETWORK="devnet"
 ```
 
-If this variable is omitted, the explorer uses the public Solana devnet RPC URL by default.
+> **Security Rule**: Database credentials and Auth secrets must **never** use the `NEXT_PUBLIC_` prefix.
 
-## Tech Stack & Architecture
+---
 
-The explorer is built with:
+## 4. Scripts & Commands
 
-- Next.js App Router
-- React and TypeScript
-- `@coral-xyz/anchor` for account decoding
-- `@solana/web3.js` for RPC access
-- shadcn/ui-style components for the registry UI
+| Script | Command | Purpose |
+|---|---|---|
+| `npm run dev` | `next dev` | Start development server on port 3000 |
+| `npm run build` | `next build` | Create production build |
+| `npm run start` | `next start` | Start production server |
+| `npm run verify` | `npm run typecheck && npm run lint && npm run test` | Full verification pipeline |
+| `npm run typecheck` | `tsc --noEmit` | Strict TypeScript compilation check |
+| `npm run lint` | `eslint .` | Lint rules verification |
+| `npm run test` | `vitest run` | Run Vitest unit & integration test suite |
+| `node scripts/smoke.mjs` | `node scripts/smoke.mjs [url]` | Run health, readiness, and negative checks |
 
-Architecture overview:
+---
 
-- `components/registry/registry-explorer.tsx` owns the page state, loading flow, fallback behavior, and source badges
-- `lib/solana.ts` reads live registry accounts, decodes the Anchor account data, and caches the result
-- `lib/idl.json` provides the local registry IDL for client-side decoding
-- `lib/mock-data.ts` provides the demo dataset used when live fetches fail
+## 5. Smoke Testing & Operational Runbook
 
-## Run locally
+To test a running build or deployment:
 
 ```bash
-npm install
-npm run dev
+node scripts/smoke.mjs http://localhost:3000
 ```
 
-Open `http://localhost:3000`.
+The smoke script tests:
+1. `GET /api/health` returns `200 OK`
+2. `GET /api/ready` reports dependency readiness (HTTP 200 or 503)
+3. Malformed POST requests return `4xx` (never `200`)
+4. Oversized request bodies (> 100 KB) return `413 Payload Too Large`
+5. Records probe latencies
 
-## Environment
-
-Set RPC endpoint in `.env.local`:
-
-```bash
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
-```
-
-If unset, the app defaults to `https://api.devnet.solana.com`.
-
-## Live data integration
-
-Live fetch uses:
-
-- `lib/solana.ts`: connection, Anchor program, account fetch/decode
-- `lib/idl.json`: registry IDL used for account decoding
-- `components/registry/registry-explorer.tsx`: UI state, fallback badge, and data source indicator
-
-On fetch errors, the app silently keeps rendering demo data.
-
-## Demo Flow
-
-1. The page loads the registry explorer shell immediately.
-2. The client fetches live registry accounts from Solana devnet.
-3. If the fetch succeeds, the explorer shows live entries and marks the source as `Devnet Live`.
-4. If the fetch fails or returns no data, the UI falls back to demo data and shows `Demo Data`.
-5. Users keep the same browsing state while the app switches to demo data when live fetch is unavailable.
-
-## How It Works
-
-- A read-only Anchor provider is created only when live fetching starts.
-- The app computes the `ProgramEntry` account discriminator and uses it to filter `getProgramAccounts` RPC results.
-- Each account is decoded with the local IDL and converted into the explorer's program card model.
-- Results are cached in memory for 30 seconds to reduce repeated RPC calls.
-- Any RPC or decoding failure maps to a user-friendly message, and the UI keeps working with fallback content.
-
-## Deployment Guide for Vercel
-
-This app can be deployed as a standalone Vercel project:
-
-1. Set the project root to `web-explorer`.
-2. Add `NEXT_PUBLIC_SOLANA_RPC_URL` in the Vercel environment settings.
-3. Use the default build command: `npm run build`.
-4. Deploy to production or preview as a standard Next.js application.
-5. Do not set the output directory to the repository root; Vercel should build and read `.next` from the `web-explorer` project itself.
-
-If Vercel is looking for `/vercel/path0/.next/...` instead of `/vercel/path0/web-explorer/.next/...`, the project is pointed at the wrong root.
-
-## Data source indicator
-
-The header shows the active source:
-
-- `Devnet Live` when on-chain fetch succeeds
-- `Demo Data` when fallback is active
-
-## Security notes
-
-- No private key is exposed in the UI.
-- The Anchor provider uses a generated read-only wallet object only for decoding context.
-- No transactions are signed in the explorer fetch path.
-
-## Performance
-
-Live account fetches are cached in memory with a 30-second TTL to reduce repeated RPC calls during rapid re-renders.
-
-## Stack
-
-- Next.js (App Router)
-- React + TypeScript
-- `@solana/web3.js`
-- `@coral-xyz/anchor`
-- shadcn/ui components
+For production deployment rollback criteria and incident handling, see `docs/release/rollback.md`.

@@ -10,26 +10,26 @@ interface ErrorStateProps {
 
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <div 
-      className="rounded-lg sm:rounded-xl border border-destructive/30 bg-destructive/5 p-4 sm:p-6 text-center"
+    <div
+      className="rounded-lg border border-danger/40 bg-surface p-6 text-center"
       role="alert"
       aria-live="assertive"
     >
-      <div className="flex items-center justify-center gap-2 sm:gap-3 text-destructive mb-3 sm:mb-4">
-        <AlertCircle className="size-5 sm:size-6" aria-hidden="true" />
-        <span className="font-semibold text-sm sm:text-lg">Something went wrong</span>
+      <div className="flex items-center justify-center gap-2 text-danger mb-2">
+        <AlertCircle className="size-5" aria-hidden="true" />
+        <span className="font-semibold text-sm">Failed to load registry data</span>
       </div>
-      <p className="text-muted-foreground text-xs sm:text-sm mb-4 sm:mb-6 max-w-md mx-auto">
+      <p className="text-text-muted text-xs mb-4 max-w-md mx-auto">
         {message}
       </p>
       <Button
         variant="outline"
         size="sm"
         onClick={onRetry}
-        className="border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs sm:text-sm"
+        className="border-border text-foreground hover:bg-surface-2 text-xs"
       >
-        <RefreshCw className="size-3.5 sm:size-4 mr-1.5 sm:mr-2" aria-hidden="true" />
-        Try Again
+        <RefreshCw className="size-3.5 mr-1.5" aria-hidden="true" />
+        Retry connection
       </Button>
     </div>
   );

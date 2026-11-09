@@ -1,25 +1,26 @@
 {
-  "name": "solana-copilot",
-  "displayName": "SolanaPilot — AI Copilot for Solana Development",
+  "name": "solanapilot",
+  "displayName": "SolanaPilot",
   "description": "AI-powered Solana smart contract generator with devnet deployment and React frontend scaffolding.",
   "version": "1.0.0",
-  "publisher": "solana-copilot",
+  "publisher": "solanapilot-dev",
   "license": "MIT",
   "keywords": [
     "solana",
-    "blockchain",
-    "web3",
+    "ai",
     "anchor",
     "smart-contract",
-    "ai",
-    "copilot"
+    "web3",
+    "copilot",
+    "toolkit",
+    "devnet"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/solana-copilot/solanapilot"
+    "url": "https://github.com/Messibre/SolanaPilot"
   },
   "bugs": {
-    "url": "https://github.com/solana-copilot/solanapilot/issues"
+    "url": "https://github.com/Messibre/SolanaPilot/issues"
   },
   "galleryBanner": {
     "color": "#9945FF",
@@ -29,65 +30,169 @@
     "vscode": "^1.84.0"
   },
   "categories": [
-    "Programming Languages",
-    "Other"
+    "AI",
+    "Programming Languages"
   ],
-  "activationEvents": [
-    "onStartupFinished",
-    "onCommand:solanaCopilot.openChat",
-    "onCommand:solanaCopilot.setApiKey",
-    "onCommand:solanaCopilot.generateProgram",
-    "onCommand:solanaCopilot.deployToDevnet",
-    "onCommand:solanaCopilot.generateFrontend"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "solanaCopilot.openChat",
+        "command": "solanaPilot.openChat",
         "title": "Open Chat",
         "category": "SolanaPilot",
         "icon": "$(comment-discussion)"
       },
       {
-        "command": "solanaCopilot.setApiKey",
-        "title": "Set Gemini API Key",
+        "command": "solanaPilot.setApiKey",
+        "title": "Set API Key",
         "category": "SolanaPilot"
       },
       {
-        "command": "solanaCopilot.generateProgram",
+        "command": "solanaPilot.selectProviderAndModel",
+        "title": "Select Provider and Model",
+        "category": "SolanaPilot"
+      },
+      {
+        "command": "solanaPilot.testConnection",
+        "title": "Test Connection",
+        "category": "SolanaPilot"
+      },
+      {
+        "command": "solanaPilot.showLogs",
+        "title": "Show Logs",
+        "category": "SolanaPilot",
+        "icon": "$(output)"
+      },
+      {
+        "command": "solanaPilot.exportReceipt",
+        "title": "Export Run Receipt",
+        "category": "SolanaPilot",
+        "icon": "$(export)"
+      },
+      {
+        "command": "solanaPilot.generateProgram",
         "title": "Generate Smart Contract",
         "category": "SolanaPilot",
         "icon": "$(sparkle)"
       },
       {
-        "command": "solanaCopilot.deployToDevnet",
+        "command": "solanaPilot.deployToDevnet",
         "title": "Deploy to Devnet",
         "category": "SolanaPilot",
         "icon": "$(rocket)"
       },
       {
-        "command": "solanaCopilot.generateFrontend",
+        "command": "solanaPilot.generateFrontend",
         "title": "Generate React Frontend",
+        "category": "SolanaPilot",
+        "icon": "$(browser)"
+      },
+      {
+        "command": "solanaCopilot.openChat",
+        "title": "Open Chat (Legacy)",
+        "category": "SolanaPilot",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "solanaCopilot.setApiKey",
+        "title": "Set Gemini API Key (Legacy)",
+        "category": "SolanaPilot"
+      },
+      {
+        "command": "solanaCopilot.generateProgram",
+        "title": "Generate Smart Contract (Legacy)",
+        "category": "SolanaPilot",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "solanaCopilot.deployToDevnet",
+        "title": "Deploy to Devnet (Legacy)",
+        "category": "SolanaPilot",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "solanaCopilot.generateFrontend",
+        "title": "Generate React Frontend (Legacy)",
         "category": "SolanaPilot",
         "icon": "$(browser)"
       }
     ],
     "keybindings": [
       {
-        "command": "solanaCopilot.openChat",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s"
+        "command": "solanaPilot.openChat",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
       },
       {
-        "command": "solanaCopilot.generateProgram",
-        "key": "ctrl+shift+g",
-        "mac": "cmd+shift+g"
+        "command": "solanaPilot.generateProgram",
+        "key": "ctrl+alt+g",
+        "mac": "cmd+alt+g"
       }
     ],
     "configuration": {
       "title": "SolanaPilot",
       "properties": {
+        "solanaPilot.provider": {
+          "type": "string",
+          "enum": [
+            "gemini",
+            "anthropic",
+            "openaiCompatible",
+            "ollama",
+            "mock"
+          ],
+          "default": "gemini",
+          "description": "Active AI provider for SolanaPilot"
+        },
+        "solanaPilot.model": {
+          "type": "string",
+          "default": "gemini-2.0-flash",
+          "description": "Model identifier for the active AI provider"
+        },
+        "solanaPilot.fallbackOrder": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "gemini",
+            "anthropic",
+            "openaiCompatible",
+            "ollama"
+          ],
+          "description": "Ordered fallback list of providers on retryable failure"
+        },
+        "solanaPilot.timeouts.requestMs": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in milliseconds"
+        },
+        "solanaPilot.timeouts.ollamaMs": {
+          "type": "number",
+          "default": 120000,
+          "description": "Timeout for local Ollama inference in milliseconds"
+        },
+        "solanaPilot.retries.maxAttempts": {
+          "type": "number",
+          "default": 2,
+          "description": "Maximum retry attempts with exponential backoff"
+        },
+        "solanaPilot.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "Base URL for local Ollama service"
+        },
+        "solanaPilot.customEndpoint.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL for custom OpenAI-compatible endpoint"
+        },
+        "solanaPilot.customEndpoint.isLocal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow loopback addresses for custom OpenAI-compatible endpoint"
+        },
         "solanaPilot.autoContextRefresh": {
           "type": "boolean",
           "default": true,
@@ -108,23 +213,30 @@
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "vitest run",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "check:secrets": "node -e \"import('./scripts/check-secrets.mjs').then(m => { const f = m.runSecretScan().filter(x => !x.file.includes('.test.')); if (f.length) { f.forEach(x => console.error('  ' + x.file + ':' + x.line + ' [' + x.rule + ']')); process.exit(1); } else { console.log('Secret check: OK (no secrets detected)'); } })\"",
+    "check:adrs": "node scripts/check-adrs.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run check:boundaries && npm run check:secrets && npm run check:adrs && npm run test"
   },
   "devDependencies": {
-    "@types/node": "^18.18.0",
+    "@types/node": "^22.0.0",
     "@types/vscode": "^1.84.0",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",
     "esbuild": "^0.19.5",
     "eslint": "^8.51.0",
-    "typescript": "^5.2.2"
+    "prettier": "^3.9.10",
+    "typescript": "^5.2.2",
+    "vitest": "^2.1.9"
   },
   "icon": "assets/icon.png",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.30.0",
-    "@google/generative-ai": "^0.3.0",
-    "@solana/web3.js": "^1.95.0"
+    "@coral-xyz/anchor": "^0.31.0",
+    "@google/genai": "^2.32.0",
+    "@solana/web3.js": "^1.95.0",
+    "zod": "^3.25.76"
   }
 }

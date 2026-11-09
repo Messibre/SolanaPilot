@@ -1,15 +1,106 @@
 {
-  "address": "Xo7TcdZwXZwU2S4em9r8Gn1L5L9ppmkqFLBpCXcuSPs",
-  "version": "0.1.0",
-  "name": "solanapilot_registry",
+  "address": "HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa",
+  "metadata": {
+    "name": "solanapilot_registry",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "SolanaPilot Registry - On-chain registry for AI-generated Solana programs"
+  },
+  "docs": [],
   "instructions": [
     {
-      "name": "registerProgram",
+      "name": "close_program_entry",
+      "docs": [
+        "Close a program entry and reclaim rent (ONLY creator can close)",
+        "",
+        "# Security",
+        "- Prevents anyone from censoring others' entries (enforced via has_one = creator)",
+        "- Returns rent safely to the creator (close = creator)",
+        "- Emits ProgramEntryClosedEvent"
+      ],
+      "discriminator": [
+        116,
+        80,
+        9,
+        193,
+        26,
+        247,
+        160,
+        194
+      ],
       "accounts": [
         {
-          "name": "programEntry",
+          "name": "program_entry",
+          "writable": true
+        },
+        {
+          "name": "creator",
           "writable": true,
-          "signer": false
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "log_deployment",
+      "docs": [
+        "Increment usage counter when someone deploys a registered program",
+        "",
+        "# Security",
+        "- ONLY the original creator can log deployments (enforced via account constraint + require!)",
+        "- Uses checked arithmetic to prevent overflow",
+        "- Emits DeploymentLoggedEvent"
+      ],
+      "discriminator": [
+        223,
+        129,
+        1,
+        27,
+        82,
+        103,
+        122,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "program_entry",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "docs": [
+            "The authority must be the original creator to prevent spam"
+          ],
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_program",
+      "docs": [
+        "Register a newly generated program in the global registry",
+        "",
+        "# Security",
+        "- Validates program_id is a real deployed program (not system program or sysvars)",
+        "- Validates all string inputs for length and format",
+        "- Uses PDA seeds [b\"program\", program_id] to prevent duplicate registrations",
+        "- Emits ProgramRegisteredEvent for off-chain indexing"
+      ],
+      "discriminator": [
+        104,
+        9,
+        166,
+        5,
+        200,
+        228,
+        112,
+        131
+      ],
+      "accounts": [
+        {
+          "name": "program_entry",
+          "writable": true
         },
         {
           "name": "creator",
@@ -17,18 +108,16 @@
           "signer": true
         },
         {
-          "name": "systemProgram",
-          "writable": false,
-          "signer": false
+          "name": "system_program"
         }
       ],
       "args": [
         {
-          "name": "programId",
+          "name": "program_id",
           "type": "pubkey"
         },
         {
-          "name": "programName",
+          "name": "program_name",
           "type": "string"
         },
         {
@@ -36,152 +125,89 @@
           "type": "string"
         },
         {
-          "name": "instructionCount",
+          "name": "instruction_count",
           "type": "u8"
         },
         {
-          "name": "generatorVersion",
+          "name": "generator_version",
           "type": "string"
         }
       ]
     },
     {
-      "name": "logDeployment",
-      "accounts": [
-        {
-          "name": "programEntry",
-          "writable": true,
-          "signer": false
-        },
-        {
-          "name": "authority",
-          "writable": false,
-          "signer": true
-        }
+      "name": "update_program_info",
+      "docs": [
+        "Update program metadata (description, instruction count)",
+        "",
+        "# Security",
+        "- ONLY the original creator can update (enforced via has_one = creator constraint)",
+        "- Validates new input lengths and bounds",
+        "- Emits ProgramInfoUpdatedEvent"
       ],
-      "args": []
-    },
-    {
-      "name": "updateProgramInfo",
+      "discriminator": [
+        246,
+        53,
+        226,
+        105,
+        149,
+        75,
+        212,
+        87
+      ],
       "accounts": [
         {
-          "name": "programEntry",
-          "writable": true,
-          "signer": false
+          "name": "program_entry",
+          "writable": true
         },
         {
           "name": "creator",
-          "writable": false,
           "signer": true
         }
       ],
       "args": [
         {
-          "name": "newDescription",
+          "name": "new_description",
           "type": {
             "option": "string"
           }
         },
         {
-          "name": "newInstructionCount",
+          "name": "new_instruction_count",
           "type": {
             "option": "u8"
           }
         }
       ]
-    },
-    {
-      "name": "closeProgramEntry",
-      "accounts": [
-        {
-          "name": "programEntry",
-          "writable": true,
-          "signer": false
-        },
-        {
-          "name": "creator",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": []
     }
   ],
   "accounts": [
     {
       "name": "ProgramEntry",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "programId",
-            "type": "pubkey"
-          },
-          {
-            "name": "programName",
-            "type": "string"
-          },
-          {
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "name": "instructionCount",
-            "type": "u8"
-          },
-          {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "registeredAt",
-            "type": "i64"
-          },
-          {
-            "name": "lastUpdated",
-            "type": "i64"
-          },
-          {
-            "name": "generatorVersion",
-            "type": "string"
-          },
-          {
-            "name": "deploymentCount",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
+      "discriminator": [
+        159,
+        16,
+        242,
+        53,
+        153,
+        164,
+        199,
+        19
+      ]
     }
   ],
   "events": [
     {
-      "name": "programRegisteredEvent",
-      "fields": [
-        {
-          "name": "programId",
-          "type": "pubkey",
-          "index": false
-        },
-        {
-          "name": "programName",
-          "type": "string",
-          "index": false
-        },
-        {
-          "name": "creator",
-          "type": "pubkey",
-          "index": false
-        },
-        {
-          "name": "timestamp",
-          "type": "i64",
-          "index": false
-        }
-      ]
+      "discriminator": [
+        165,
+        242,
+        2,
+        86,
+        57,
+        170,
+        23,
+        154
+      ],
+      "name": "DeploymentLoggedEvent"
     }
   ],
   "errors": [
@@ -230,5 +256,76 @@
       "name": "Unauthorized",
       "msg": "Unauthorized: only the creator can perform this action"
     }
-  ]
+  ],
+  "types": [
+    {
+      "name": "DeploymentLoggedEvent",
+      "type": {
+        "fields": [
+          {
+            "name": "program_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "deployment_count",
+            "type": "u64"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ],
+        "kind": "struct"
+      }
+    },
+    {
+      "name": "ProgramEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "program_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "program_name",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "instruction_count",
+            "type": "u8"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "registered_at",
+            "type": "i64"
+          },
+          {
+            "name": "last_updated",
+            "type": "i64"
+          },
+          {
+            "name": "generator_version",
+            "type": "string"
+          },
+          {
+            "name": "deployment_count",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": []
 }

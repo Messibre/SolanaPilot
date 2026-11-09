@@ -1,20 +1,52 @@
+/**
+ * AI client routing all legacy AI calls through LlmGateway.
+ * Strictly adheres to Agent.md §6 and §10.
+ * Replaced @google/generative-ai with LlmGateway and modern providers.
+ */
+
 import * as vscode from "vscode";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { LlmGateway, type ClientFactory } from "./ai/gateway";
+import { GeminiClient } from "./ai/providers/gemini";
+import { AnthropicClient } from "./ai/providers/anthropic";
+import { OpenAiCompatibleClient } from "./ai/providers/openaiCompatible";
+import { OllamaClient } from "./ai/providers/ollama";
+import { MockLlmClient } from "./ai/providers/mock";
+import { loadConfig } from "./core/config";
 import { SOLANA_SYSTEM_PROMPT } from "./systemPrompt";
-import { rateLimiter } from "./rateLimiter";
+import { BudgetTracker } from "./agent/budget";
+import type { ProviderId } from "./core/validation";
 
-const MODEL_NAME = "gemini-2.5-flash";
+const budgetTracker = new BudgetTracker({ maxCallsPerHour: 50 });
 
-let genAI: GoogleGenerativeAI | undefined;
+const defaultFactory: ClientFactory = (id: ProviderId, config, apiKey) => {
+  if (id === "gemini") {
+    return new GeminiClient({ apiKey: apiKey ?? "", defaultModel: config.model });
+  }
+  if (id === "anthropic") {
+    return new AnthropicClient({ apiKey, defaultModel: config.model });
+  }
+  if (id === "openaiCompatible") {
+    return new OpenAiCompatibleClient({
+      preset: "openai",
+      apiKey,
+      baseUrl: config.customEndpoint.url,
+      defaultModel: config.model,
+      isLocal: config.customEndpoint.isLocal,
+    });
+  }
+  if (id === "ollama") {
+    return new OllamaClient({
+      baseUrl: config.ollama.baseUrl,
+      defaultModel: config.model,
+    });
+  }
+  return new MockLlmClient();
+};
 
-export function initAI(apiKey: string): void {
-  genAI = new GoogleGenerativeAI(apiKey);
+export function initAI(apiKey?: string): void {
+  void apiKey;
 }
 
-/**
- * Truncate workspace context to prevent token bloat and accidental secret exposure.
- * Keeps active file (~2000 chars) + other files (~2000 chars) within 4000 char limit.
- */
 function truncateContext(context: string): string {
   const MAX_CONTEXT_LENGTH = 4000;
   if (context.length <= MAX_CONTEXT_LENGTH) {
@@ -29,68 +61,50 @@ function truncateContext(context: string): string {
 export async function callAI(
   userMessage: string,
   workspaceContext: string,
-  expectJSON: boolean = false,
+  expectJSON = false
 ): Promise<string> {
-  if (!genAI) {
-    throw new Error("AI not initialized. Set your API key first.");
-  }
+  budgetTracker.recordCall();
 
-  // Check rate limit
-  const rateLimitCheck = rateLimiter.checkAndRecord();
-  if (!rateLimitCheck.allowed) {
-    const resetTime = rateLimitCheck.resetAt?.toLocaleTimeString() || "soon";
-    throw new Error(
-      `Rate limit reached: 50 calls per hour. Try again at ${resetTime}. ` +
-        `This limit protects your API quota and prevents abuse.`,
+  const vsConfig = vscode.workspace.getConfiguration("solanaPilot");
+  const rawConfig: Record<string, unknown> = {};
+
+  const provider = vsConfig.get<string>("provider");
+  if (provider) rawConfig.provider = provider;
+
+  const model = vsConfig.get<string>("model");
+  if (model) rawConfig.model = model;
+
+  const config = loadConfig(rawConfig);
+  const secretResolver = async (keyOrProvider: string): Promise<string | undefined> => {
+    return (
+      process.env[keyOrProvider] ??
+      process.env[keyOrProvider.toUpperCase()] ??
+      process.env.GEMINI_API_KEY
     );
-  }
+  };
 
-  // Show warning if nearing rate limit
-  if (rateLimitCheck.remaining <= 5) {
-    await vscode.window.showWarningMessage(
-      `⚠️ Only ${rateLimitCheck.remaining} AI calls remaining this hour. Use them wisely!`,
-    );
-  }
-
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    generationConfig: {
-      temperature: expectJSON ? 0.1 : 0.7,
-      maxOutputTokens: expectJSON ? 8192 : 2048,
-    },
+  const gateway = new LlmGateway({
+    config,
+    secrets: secretResolver,
+    clientFactory: defaultFactory,
   });
 
-  // Truncate context to prevent token bloat and secret exposure
-  const truncatedContext = truncateContext(workspaceContext || "");
-
+  const truncated = truncateContext(workspaceContext || "");
   const systemPrompt = SOLANA_SYSTEM_PROMPT.replace(
     "{WORKSPACE_CONTEXT}",
-    truncatedContext || "No workspace context available",
+    truncated || "No workspace context available"
   );
 
-  const fullPrompt = `${systemPrompt}\n\nUSER REQUEST:\n${userMessage}`;
+  const result = await gateway.generate({
+    model: config.model,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userMessage }],
+    jsonMode: expectJSON,
+  });
 
-  try {
-    const result = await model.generateContent(fullPrompt);
-    const response = result.response.text();
-
-    if (!response || response.trim() === "") {
-      throw new Error("Empty response from Gemini API. Please try again.");
-    }
-
-    return response;
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.message.includes("API key")) {
-        throw new Error("Invalid API key. Check your Gemini API setup.");
-      }
-      if (error.message.includes("rate")) {
-        throw new Error("API rate limited. Please wait before trying again.");
-      }
-      throw error;
-    }
-    throw new Error(
-      "Unknown error calling AI API. Check your network and API key.",
-    );
+  if (!result.text || result.text.trim() === "") {
+    throw new Error("Empty response from AI gateway. Please try again.");
   }
+
+  return result.text;
 }

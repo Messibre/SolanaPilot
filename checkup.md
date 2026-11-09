@@ -1,0 +1,217 @@
+# checkup.md — The Loop and the Completion Log
+
+Two parts:
+1. **Protocol** (human-owned — you may not edit it)
+2. **Completion Log** (you append to it, one row per finished task, with the commit hash)
+
+---
+
+# Part 1 — Protocol
+
+You do one task at a time, forever, until a stop condition is hit. This file is how you stay on track over a very long run. **Re-read `Agent.md` and this Protocol at the start of every iteration** — don't rely on what you remember.
+
+## Iteration steps
+
+### Step 0 — Orient (every iteration)
+1. Read `Agent.md` (all of it) and this Protocol.
+2. `git branch --show-current` must be `feat/refactor`. If not, switch to it. If it doesn't exist, only T-000 may create it.
+3. `git status --porcelain`:
+   - **Empty:** good, continue.
+   - **Not empty:** a previous iteration was cut off. Look at the *Current Task* block below (Part 2). If a task is marked in progress, **resume that task** at the step it reached. If nothing explains the changes, run `git diff --stat`, decide whether they belong to the in-progress task; if they do not, `git stash push -m "orphaned-<date>"` (never delete), and write a blocker note about the stash.
+4. Read the last 5 rows of the Completion Log and the open items in `BLOCKERS.md`.
+
+### Step 1 — Select
+- Open `taskslist.md`. Pick the **first** `[ ]` task whose `Needs:` are all `[x]`.
+- Nothing eligible? Go to *Stop conditions*.
+- Change its box to `[~]`. Fill in the **Current Task** block (Part 2): task ID, start time, attempt number `1`.
+
+### Step 2 — Inspect
+- Read every file in the task's Scope and the files they import. Read relevant existing tests.
+- Run `npm run verify` (and the web-explorer one if that package is in scope). Record the starting result. **If verify fails before you changed anything,** the tree is broken: fix that first as part of this task only if it's in Scope; otherwise write a blocker.
+- **Exploration cap:** at most 25 tool calls (reads/searches/commands) before you must write the Plan. If you hit the cap, write the plan with what you know and note unknowns; if the unknowns affect correctness, block.
+
+### Step 3 — Plan
+Write into the **Current Task** block (max 10 lines):
+- What you will change, file by file
+- What tests you will write first
+- Which `Agent.md` rules are most relevant here
+- Risks or unknowns
+
+Then check the plan against `Agent.md` §3 (hard rules) and §7 (dependencies). If the plan violates a rule, log it to `docs/agent/rejections.md` and change the plan. If something is ambiguous or needs a human, **block** (see below) instead of guessing.
+
+### Step 4 — Edit
+- Tests first for logic (write the failing test, see it fail, then implement).
+- Smallest change that satisfies **Done when**. No drive-by refactors, no bonus features.
+- Keep commits focused: everything you change belongs to this task.
+
+### Step 5 — Test
+- Run `npm run verify` (+ web-explorer verify / `anchor build` / `anchor test` if in scope or if the task text says so).
+- Run every task-specific check in **Done when**, including red-green checks.
+- Copy the key result lines (pass counts, exit codes) for the log. Don't paste secrets or large output.
+
+### Step 6 — Review
+Read your own `git diff` top to bottom. Tick all of these (write "ok" or the problem):
+- [ ] `git diff --name-only` ⊆ Scope
+- [ ] No new dependency outside the allowlist; lockfile changed only if a dependency changed
+- [ ] No secrets, keys, or personal paths (`npm run check:secrets` ok)
+- [ ] No `any`, no `@ts-ignore`, no `eslint-disable`, no `.skip/.only`, no `console.log`
+- [ ] Every new validation/security test was red-green checked
+- [ ] No test only asserts what it mocked
+- [ ] Docs, env tables, CHANGELOG updated if behavior changed
+- [ ] Root cause or reasoning for non-trivial choices is stated for the commit body
+
+Fix any problem found, then re-run Step 5.
+
+### Step 7 — Commit (work commit)
+```
+git add <explicit paths only>
+git commit -m "type(scope): summary [T-0xx]" -m "<root cause / why / verification lines / red-green checked>"
+git rev-parse --short HEAD     # this is the hash you will log
+```
+Never `git add .`. Never push. Never amend after this point.
+
+### Step 8 — Log (log commit)
+1. In Part 2's **Completion Log**, add a row:
+   `| T-0xx | <short title> | <hash> | <date UTC> | <verify result> | <attempts> | <notes> |`
+2. In `taskslist.md`, change that task's box from `[~]` to `[x]`.
+3. Clear the **Current Task** block.
+4. Commit only those two files: `git add checkup.md taskslist.md && git commit -m "chore(log): T-0xx done"`
+   (The hash can't be inside its own commit, which is why the log lives in a second small commit.)
+
+### Step 9 — Checkpoints
+- **Every 5 completed tasks:** run the *full audit*: `npm run verify` (root), `npm run verify` (`web-explorer`), `npm run check:secrets`, and `git log --stat -n 12` to confirm no unexpected files appear. Add a row `AUDIT` to the log with the result. Fix failures before continuing (that fix is its own commit tagged `fix(audit)`).
+- **Every 10 completed tasks:** overwrite `docs/agent/handoff.md` with: current phase, last task, open blockers, any conventions you established, anything a fresh session must know. Commit as `docs(agent): handoff snapshot`. Then **re-read `Agent.md` start to finish** and continue.
+
+### Step 10 — Loop
+Go to Step 0.
+
+---
+
+## Failure handling (this is what keeps the run from spinning)
+
+**Attempts.** An attempt = one full pass of Edit → Test → Review that ended in failure. Maximum **3 attempts per task**. Track the count in the Current Task block.
+
+**Failure signature.** After each failed attempt write a one-line signature: the first error message with paths, numbers and hashes removed (e.g. `TS2345 argument of type X not assignable`).
+
+- **Same signature twice in a row** → you are repeating yourself. Before attempt 3 you must change the approach: re-read the relevant docs/types/source, and write one sentence on *why the previous approach failed*.
+- **Never** run the same failing command with the same inputs a third time without a change in between.
+- **Never** "fix" by disabling checks, deleting tests, loosening types, or catching and ignoring the error.
+
+**After attempt 3 fails → BLOCK:**
+1. Restore the working tree **for the task's Scope only**: `git restore --staged --worktree -- <scope paths>` and remove only new untracked files you created in that Scope (`git clean -f -- <those files>`). Do not use `reset --hard`.
+2. Append to `BLOCKERS.md`: task ID, the three attempts and their signatures, what you believe the cause is, what the human should check or decide, which later tasks depend on this one.
+3. Change the task box to `[!]`.
+4. Add a log row with status `BLOCKED` (no commit hash; put `—`). Commit `BLOCKERS.md`, `taskslist.md`, `checkup.md` as `chore(log): T-0xx blocked`.
+5. Continue with the next eligible task. Tasks that depend on a blocked task are not eligible and must be skipped, not worked around.
+
+**Immediate block** (don't spend attempts) when:
+- the task needs a secret/account/service you don't have,
+- the task needs a tool that isn't installed,
+- the task text is ambiguous in a way that changes behavior,
+- following the task would break a hard rule in `Agent.md`,
+- the change would affect who can do what in the contract or move funds beyond what the task states.
+
+## Stop conditions
+
+Stop the run, write a final status message at the top of `docs/agent/handoff.md`, and wait for the human when **any** is true:
+1. Every task is `[x]` or `[!]`, or the remaining `[ ]` tasks all depend on blocked tasks.
+2. **Three tasks in a row** ended `[!]` (something systemic is wrong).
+3. `npm run verify` fails on a clean tree and you cannot fix it within Scope after 3 attempts.
+4. You were about to violate a hard rule and there is no compliant way forward.
+5. You discover a committed secret (write a blocker with the file and line only; never print it).
+6. The human's message says stop.
+
+When you stop, do not delete anything, do not "tidy up", and leave the tree clean and committed.
+
+## Status vocabulary in the Log
+`DONE` · `BLOCKED` · `AUDIT` · `HANDOFF`
+
+---
+
+# Part 2 — State and Log (you edit this part)
+
+## Current Task
+
+```
+Task:
+Started (UTC):
+Attempt:
+Plan:
+Failure signatures so far:
+```
+
+## Completion Log
+
+| Task | Title | Commit hash | Date (UTC) | Verify result | Attempts | Status / Notes |
+|---|---|---|---|---|---|---|
+| T-000 | Branch and environment snapshot | 270d085 | 2026-11-03 08:05 | N/A (baseline) | 1 | DONE: feat/refactor created, toolchain versions recorded |
+| T-001 | One verify command | 7673a07 | 2026-11-03 08:21 | verify PASS (5 scripts, 1 test) | 1 | DONE: vitest, prettier, verify command added and red-green checked |
+| T-002 | Baseline report | 53a5a1d | 2026-11-03 08:27 | root: verify PASS, 5 warnings; web-explorer: lint 1 err, tsc 3 err | 1 | DONE: baseline captured in docs/agent/baseline.md |
+| T-003 | Secret hygiene | 70997bf | 2026-11-03 08:34 | verify PASS (12 tests) | 1 | DONE: check-secrets scanner + tests + gitignores |
+| T-004 | Boundary lint | 0fd8b56 | 2026-11-03 08:38 | verify PASS (12 tests) | 1 | DONE: boundary lint in ESLint and check-boundaries.mjs |
+| AUDIT | Full checkpoint (tasks 0-4) | 0fd8b56 | 2026-11-03 08:40 | root: verify PASS, secrets PASS, log-stat verified; web: verify pending T-060 | 1 | PASS |
+| T-010 | Create layout skeleton | 6b69d87 | 2026-11-03 08:44 | verify PASS (12 tests) | 1 | DONE: layout skeleton and ADR 0001 created |
+| T-011 | Typed errors and failure categories | 8f7e43d | 2026-11-03 08:48 | verify PASS (21 tests) | 1 | DONE: 15 error categories + classify function |
+| T-012 | Redaction | c776d9a | 2026-11-03 08:54 | verify PASS (36 tests) | 1 | DONE: deep redaction with cycle detection |
+| T-013 | Structured logger and spans | 3dc6437 | 2026-11-03 08:59 | verify PASS (41 tests) | 1 | DONE: structured logger, span tracking, and redact-on-write |
+| T-014 | Path guard | 487bc06 | 2026-11-03 09:05 | verify PASS (56 tests) | 1 | DONE: workspace path containment, deny list, symlinks |
+| T-014-HANDOFF | Handoff snapshot (tasks 0-14) | cadd7ab | 2026-11-03 09:07 | docs/agent/handoff.md updated | 1 | HANDOFF |
+| T-015 | URL guard (SSRF) | df30465 | 2026-11-03 09:14 | verify PASS (69 tests) | 1 | DONE: SSRF protection, numeric/hex/octal/IPv6-mapped IP checks, guardedFetch redirects |
+| AUDIT | Full checkpoint (tasks 10-15) | df30465 | 2026-11-03 09:15 | root: verify PASS (69 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-016 | Shared validation schemas | 987b26e | 2026-11-03 09:22 | verify PASS (91 tests) | 1 | DONE: zod schemas, boundary checks, base58 32-byte pubkey, prompt, path, url |
+| T-017 | Typed settings | f6b02b2 | 2026-11-03 09:26 | verify PASS (99 tests) | 1 | DONE: zod config schema, defaults, loadConfig with typed ConfigError naming bad key |
+| T-020 | LLM client interface and gateway | 46bbf12 | 2026-11-03 09:35 | verify PASS (107 tests) | 1 | DONE: LlmClient, LlmGateway, timeout, retry backoff, fallback chain, pre-flight key check |
+| T-021 | Mock provider (offline lane) | ea2869a | 2026-11-03 09:39 | verify PASS (112 tests) | 1 | DONE: MockLlmClient with FIFO response queue, error injection, delay, call recording |
+| T-022 | Gemini provider | 599e08b | 2026-11-03 09:50 | verify PASS (119 tests) | 1 | DONE: GeminiClient with @google/genai, mapped 401/429/503/timeout/empty/safety |
+| T-023 | OpenAI-compatible provider | 9dc0397 | 2026-11-03 09:54 | verify PASS (130 tests) | 1 | DONE: OpenAiCompatibleClient, presets (openai, openrouter, custom), guardedFetch SSRF, key redaction |
+| T-024 | Anthropic provider | 7c38dd9 | 2026-11-03 10:03 | verify PASS (142 tests) | 1 | DONE: AnthropicClient, Messages API, guardedFetch SSRF, refusal handling, error mapping, key redaction |
+| AUDIT | Full checkpoint (tasks 16-24) | 7c38dd9 | 2026-11-03 10:05 | root: verify PASS (142 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-025 | Ollama provider (local) | df84361 | 2026-11-03 10:10 | verify PASS (153 tests) | 1 | DONE: OllamaClient, loopback enforcement, listModels, healthCheck, 120s timeout, jsonMode warnings |
+| T-026 | Structured output layer | fb82ed2 | 2026-11-03 10:15 | verify PASS (160 tests) | 1 | DONE: generateStructured, fence stripping, balanced JSON extraction, strict Zod validation, repair loop, empty content flag |
+| T-026-HANDOFF | Handoff snapshot (tasks 0-26) | 2ad3ec2 | 2026-11-03 10:16 | docs/agent/handoff.md updated | 1 | HANDOFF |
+| T-027 | Wire providers into extension | c63972e | 2026-11-03 10:23 | verify PASS (160 tests), esbuild PASS | 1 | DONE: SecretStorage per provider, commands (selectProviderAndModel, testConnection, setApiKey), status bar item, thin extension.ts |
+| T-028 | Budget module | 9e14c88 | 2026-11-03 10:27 | verify PASS (166 tests) | 1 | DONE: BudgetTracker for steps, tokens, wallClock, callsPerHour, conservative estimation fallback |
+| T-029 | Retire old aiClient.ts | 2d0fdca | 2026-11-03 10:38 | verify PASS (166 tests), esbuild PASS | 1 | DONE: removed @google/generative-ai, deleted rateLimiter.ts, routed legacy calls through LlmGateway |
+| AUDIT | Full checkpoint (tasks 25-29) | 2d0fdca | 2026-11-03 10:41 | root: verify PASS (166 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-030 | Tool registry | 1d9a124 | 2026-11-03 10:51 | verify PASS (200 tests) | 1 | DONE: tool registry, read_file, list_dir, search_text, write_file, run_check, fetch_docs, side-effect proof |
+| T-031 | Injection screen | 3b094a9 | 2026-11-03 10:57 | verify PASS (219 tests) | 1 | DONE: injection screen, negative/positive fixtures, untrusted tool envelope |
+| T-032 | Agent loop orchestrator | ea903c0 | 2026-11-03 11:20 | verify PASS (228 tests) | 1 | DONE: agent loop orchestrator, 6 terminal states, duplicate/oscillation cycle detection, receipts |
+| T-033 | Pipeline state graph | c914955 | 2026-11-03 11:28 | verify PASS (236 tests) | 1 | DONE: pipeline state machine, 196 transitions tested, bounded fix loop, serialization, diagram |
+| T-034 | Skills (progressive disclosure) | f59164c | 2026-11-03 11:40 | verify PASS (244 tests) | 1 | DONE: 8 modular skills, SkillLoader, base prompt (>80% token reduction), ADR 0002 |
+| AUDIT | Full checkpoint (tasks 30-34) | f59164c | 2026-11-03 11:42 | root: verify PASS (244 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-035 | Stage: PLAN and GENERATE | 0afbc16 | 2026-11-03 11:57 | verify PASS (255 tests) | 1 | DONE: structured plan & generate stages, pathGuard write containment, size caps, overwrite protection, red-green checked |
+| T-036 | Stage: BUILD and FIX loop | 180b1bd | 2026-11-03 12:08 | verify PASS (264 tests) | 1 | DONE: compiler error parser, surgical patch schema, signature tracking, strategy adaptation, cycle detection cap |
+| T-037 | Stage: TEST generation and REVIEW | 8b257e6 | 2026-11-03 12:21 | verify PASS (272 tests) | 1 | DONE: Anchor TS test generation, security review with 10-point checklist, blocksDeploy on high severity, red-green checked |
+| T-038 | Deploy runner refactor (devnet only) | e47a489 | 2026-11-03 12:36 | verify PASS (280 tests) | 1 | DONE: execFile deploy runner, devnetGuard mainnet refusal, balance check, airdrop retry bound, Windows path handling |
+| T-039 | Stage: DEPLOY, REGISTER, wiring, and resume | 43e799d | 2026-11-03 13:23 | verify PASS (304 tests) | 1 | DONE: deployStage with AWAIT_DEPLOY_CONFIRM callback, registerStage with validated schema, registry client, pipelineRunner end-to-end, frontendGenerator structured output |
+| AUDIT | Full checkpoint (tasks 35-39) | d890fe8 | 2026-11-03 13:26 | root: verify PASS (304 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-040 | Contract baseline | 6bb9dec | 2026-11-03 13:42 | verify PASS (304 tests) | 1 | DONE: anchor build baseline recorded, toolchain edition2024 failure documented in BLOCKERS.md |
+| T-041 | Anchor upgrade | f104387 | 2026-11-04 12:30 | verify PASS (304 tests) | 1 | DONE: anchor-cli 0.31, anchor-lang 0.31, @coral-xyz/anchor ^0.31, anchor build succeeded, IDL generated |
+| T-042 | Harden the registry program | 164fd5f | 2026-11-04 13:44 | verify PASS (311 tests), cargo test PASS (5 tests) | 1 | DONE: checked math, named errors, InitSpace, events on state changes, docs/CONTRACT.md |
+| T-043 | Anchor tests | 442f526 | 2026-11-06 10:00 | anchor test PASS (18 tests), verify PASS (311 tests) | 1 | DONE: 18 integration tests covering all instructions, error codes, limits, red-green checked |
+| T-044 | New program ID | 4137796 | 2026-11-06 10:14 | anchor build PASS, secrets PASS, verify PASS (311 tests) | 1 | DONE: new program ID HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa, all references updated |
+| T-050 | Split chatPanel.ts | fa4828e | 2026-11-04 12:49 | verify PASS (311 tests) | 1 | DONE: split chatPanel into src/chat/ (<300 lines each), Zod protocol validation, deleted chatPanel.ts |
+| T-051 | Webview rebuild (secure + themed) | 7089384 | 2026-11-06 10:33 | verify PASS (325 tests) | 1 | DONE: media/chat.css & media/chat.js, CSP nonce, Agent.md §14 tokens, pipeline progress, WCAG contrast tests, red-green checked |
+| AUDIT | Full checkpoint (tasks 40-44, 50-51) | eb48499 | 2026-11-06 10:35 | root: verify PASS (325 tests), web-explorer: lint PASS, secrets PASS, log-stat verified | 1 | PASS |
+| T-052 | Telemetry sinks and commands | 793e503 | 2026-11-06 10:43 | verify PASS (330 tests) | 1 | DONE: OutputChannelSink, rotating JsonlFileSink, exportRunReceipt, red-green checked secret proof |
+| T-053 | Manifest, commands and metadata | 33abfd7 | 2026-11-06 11:00 | verify PASS (330 tests), vsce ls clean | 1 | DONE: solanapilot rename, solanaPilot.* commands, keybinding fixes, .vscodeignore clean, CHANGELOG breaking renames |
+| T-054 | Prerequisite checks and first-run | 0c614a5 | 2026-11-06 12:05 | verify PASS (354 tests) | 1 | DONE: pure version parsing in core/prereqs.ts, Anchor >= 0.31 warning, session-cached checks, first-run Ollama onboarding |
+| T-045 | Devnet deployment | 33af87f | 2026-11-06 12:28 | verify PASS (354 tests), devnet deployed | 1 | DONE: deployed registry to devnet HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa slot 519298165 |
+| T-046 | Update consumers of the program | ebe9497 | 2026-11-06 12:35 | verify PASS (354 tests), tsc PASS | 1 | DONE: copied Anchor 0.31 IDL to explorer, updated PROGRAM_ID to HsgU4dZEKDmWbSufhdA6zJrdz6RJDaSzrN5VQToCDpXa, 0 old ID references remain, web-explorer typecheck passes |
+| AUDIT | Full checkpoint (tasks 52-54, 45-46) | ebe9497 | 2026-11-06 12:39 | root: verify PASS (354 tests), web: lint PASS & tsc PASS, secrets PASS, log-stat verified | 1 | PASS |
+| T-060 | Explorer cleanup and env validation | 995f302 | 2026-11-06 13:07 | root verify PASS (354 tests), web verify PASS (10 tests, lint, tsc) | 1 | DONE: renamed to solanapilot-explorer, added verify/test/typecheck scripts with Vitest, Zod env validation, removed 54 unused UI/hook components and 36 unused dependencies, added explicit demo mode banner |
+| T-061 | Design tokens and theming | ead67f2 | 2026-11-06 13:16 | root verify PASS (354 tests), web verify PASS (22 tests, lint, tsc) | 1 | DONE: tokens.css with dark/light/system, ThemeToggle, next/font Inter+JetBrains Mono, WCAG AA contrast tests, deleted duplicate globals.css, docs/DESIGN.md |
+| T-062 | Restyle registry UI | 61d6813 | 2026-11-06 13:29 | root verify PASS (354 tests), web verify PASS (22 tests, lint, tsc) | 1 | DONE: dense ProgramTable, mono addresses + copy buttons, ThemeToggle + sign-in slot in header, 0 gradients/blur remain, keyboard reachable |
+| T-063 | Database schema | 342cc9d | 2026-11-06 13:57 | root verify PASS (354 tests), web verify PASS (22 tests, tsc, lint) | 1 | DONE: prisma schema with User, Identity, WalletNonce, unique indexes, singleton client |
+| T-064 | Auth.js with GitHub | e92ec8c | 2026-11-06 14:17 | root verify PASS (354 tests), web verify PASS (28 tests, tsc, lint) | 1 | DONE: Auth.js v5 GitHub provider, User+Identity upsert, session shaping, fake DB tests, ADR 0003 |
+| AUDIT | Full checkpoint (tasks 60-64) | e92ec8c | 2026-11-06 14:20 | root: verify PASS (354 tests), web: verify PASS (28 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-065 | Sign-In With Solana | 7d6989a | 2026-11-06 14:28 | root verify PASS (354 tests), web verify PASS (36 tests, tsc, lint) | 1 | DONE: SIWS ed25519 tweetnacl verification, atomic nonce store, /api/auth/nonce, credentials provider, wallet UI, 8 tests |
+| T-066 | Account linking | 946ec9d | 2026-11-06 14:39 | root verify PASS (354 tests), web verify PASS (42 tests, tsc, lint) | 1 | DONE: account link/unlink with ownership proof, zero-identity unlink protection, /api/account/* routes, ProfileView, 6 tests |
+| T-067 | Route protection and security headers | 82656fd | 2026-11-06 14:48 | root verify PASS (354 tests), web verify PASS (46 tests, tsc, lint) | 1 | DONE: middleware route protection, security headers, apiHandler (400/401/413/429), rate limiter, 4 tests |
+| T-068 | Explorer data layer | 0ef009a | 2026-11-06 14:58 | root verify PASS (354 tests), web verify PASS (57 tests, tsc, lint) | 1 | DONE: /api/programs server route, SOLANA_RPC_URL prioritization, TTL cache, param clamping, authority filter, 11 tests |
+| T-069 | Health, readiness and smoke script | 4778993 | 2026-11-09 08:35 | root verify PASS (354 tests), web verify PASS (57 tests), smoke PASS (4/4) | 1 | DONE: GET /api/health (200), GET /api/ready (200/503), POST /api/ready (400/413), smoke.mjs, rollback runbook |
+| AUDIT | Full checkpoint (tasks 65-69) | 4778993 | 2026-11-09 08:37 | root: verify PASS (354 tests), web: verify PASS (57 tests), secrets PASS, log-stat verified | 1 | PASS |
+| T-070 | Docs rewrite | 3e84807 | 2026-11-09 08:47 | root verify PASS (354 tests), web verify PASS (57 tests), 0 dead links | 1 | DONE: README, ARCHITECTURE, PROVIDERS, SECURITY, AGENT_PIPELINE, REGISTRY_DEPLOYMENT, web-explorer/README, CHANGELOG 2.0.0 |
+| T-071 | ADR set | 7a2a795 | 2026-11-09 09:02 | root verify PASS (354 tests, ADR check OK), web verify PASS (57 tests) | 1 | DONE: ADRs 0001-0006, scripts/check-adrs.mjs, check:adrs in verify, red-green checked |
+| T-072 | Package the extension | 0eb191f | 2026-11-09 09:09 | root verify PASS (354 tests), web verify PASS (57 tests) | 1 | DONE: solanapilot-1.0.0.vsix (451.84 KB), git-ignored, 0 secrets/maps/tests, vsix-report.md |
+| T-073 | Production-readiness audit | fb806f1 | 2026-11-09 09:26 | all suites PASS (429 tests: 354 root, 57 web, 18 anchor), secrets PASS | 1 | DONE: 14 areas audited, gaps listed, blockers summarized, production sign-off in docs/READINESS.md |

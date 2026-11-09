@@ -1,88 +1,34 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { callAI } from "./aiClient";
+import type { LlmClient } from "./ai/types";
+import { LlmGateway, type ClientFactory } from "./ai/gateway";
+import { GeminiClient } from "./ai/providers/gemini";
+import { AnthropicClient } from "./ai/providers/anthropic";
+import { OpenAiCompatibleClient } from "./ai/providers/openaiCompatible";
+import { OllamaClient } from "./ai/providers/ollama";
+import { MockLlmClient } from "./ai/providers/mock";
+import { loadConfig } from "./core/config";
+import type { ProviderId } from "./core/validation";
 import { writeFilesToWorkspace } from "./fileWriter";
-import { FRONTEND_PROMPT } from "./systemPrompt";
 import { TerminalRunner } from "./terminalRunner";
+import {
+  frontendStage,
+  type FrontendGenerationResponse,
+} from "./agent/stages/frontend";
 
-interface FrontendGenerationResponse {
-  type: "frontend";
-  files?: Array<{ path: string; content: string }>;
-  startCommand?: string;
-}
+export {
+  FrontendFileSchema,
+  FrontendGenerationSchema,
+  frontendStage,
+  buildFrontendPrompt,
+  type FrontendGenerationResponse,
+  type FrontendStageInput,
+} from "./agent/stages/frontend";
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function validateFrontendGenerationResponse(
-  parsed: unknown,
-): FrontendGenerationResponse {
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error("AI response must be a JSON object.");
-  }
-
-  const response = parsed as Record<string, unknown>;
-
-  if (response.type !== "frontend") {
-    throw new Error('AI response must include "type": "frontend".');
-  }
-
-  if (!Array.isArray(response.files) || response.files.length === 0) {
-    throw new Error("AI response missing files array.");
-  }
-
-  const files = response.files.map((file) => {
-    if (!file || typeof file !== "object") {
-      throw new Error("AI response contains invalid file entries.");
-    }
-
-    const fileRecord = file as Record<string, unknown>;
-    if (!isNonEmptyString(fileRecord.path)) {
-      throw new Error("AI response contains a file with an invalid path.");
-    }
-
-    if (typeof fileRecord.content !== "string") {
-      throw new Error(`File content for ${fileRecord.path} is not a string.`);
-    }
-
-    if (path.isAbsolute(fileRecord.path)) {
-      throw new Error(`Refusing to write absolute path: ${fileRecord.path}`);
-    }
-
-    const normalized = path.normalize(fileRecord.path);
-    if (normalized.split(path.sep).includes("..")) {
-      throw new Error(
-        `Refusing to write path traversal path: ${fileRecord.path}`,
-      );
-    }
-
-    if (Buffer.byteLength(fileRecord.content, "utf-8") > 1_000_000) {
-      throw new Error(
-        `File too large: ${fileRecord.path} exceeds 1000000 bytes`,
-      );
-    }
-
-    return {
-      path: fileRecord.path,
-      content: fileRecord.content,
-    };
-  });
-
-  return {
-    type: "frontend",
-    files,
-    startCommand: isNonEmptyString(response.startCommand)
-      ? response.startCommand
-      : undefined,
-  };
-}
-
-async function findIDLFile(workspaceRoot: string): Promise<string | null> {
+export async function findIDLFile(workspaceRoot: string): Promise<string | null> {
   try {
     const idlDir = path.join(workspaceRoot, "target", "idl");
-
     if (!fs.existsSync(idlDir)) {
       return null;
     }
@@ -102,10 +48,9 @@ async function findIDLFile(workspaceRoot: string): Promise<string | null> {
   }
 }
 
-async function extractProgramID(workspaceRoot: string): Promise<string | null> {
+export async function extractProgramID(workspaceRoot: string): Promise<string | null> {
   try {
     const anchorToml = path.join(workspaceRoot, "Anchor.toml");
-
     if (!fs.existsSync(anchorToml)) {
       return null;
     }
@@ -116,12 +61,10 @@ async function extractProgramID(workspaceRoot: string): Promise<string | null> {
 
     for (const line of lines) {
       const trimmed = line.trim();
-
       if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
         inDevnetSection = trimmed === "[programs.devnet]";
         continue;
       }
-
       if (!inDevnetSection || trimmed.length === 0 || trimmed.startsWith("#")) {
         continue;
       }
@@ -140,128 +83,66 @@ async function extractProgramID(workspaceRoot: string): Promise<string | null> {
   }
 }
 
-function parseFrontendResponse(raw: string): FrontendGenerationResponse {
-  let cleaned = raw.trim();
+function createDefaultGateway(): LlmClient {
+  const vsConfig = vscode.workspace.getConfiguration("solanaPilot");
+  const rawConfig: Record<string, unknown> = {};
 
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.slice(7);
-  }
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
+  const provider = vsConfig.get<string>("provider");
+  if (provider) rawConfig.provider = provider;
+  const model = vsConfig.get<string>("model");
+  if (model) rawConfig.model = model;
 
-  cleaned = cleaned.trim();
-  const jsonStart = cleaned.indexOf("{");
-  if (jsonStart === -1) {
-    throw new Error("AI response does not contain valid JSON.");
-  }
-
-  const slice = cleaned.slice(jsonStart);
-
-  const closeIncompleteJsonObject = (rawJson: string): string => {
-    let inString = false;
-    let escaped = false;
-    let openBraces = 0;
-    let completed = "";
-
-    for (let index = 0; index < rawJson.length; index++) {
-      const char = rawJson[index];
-
-      if (inString) {
-        completed += char;
-
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-
-        if (char === "\\") {
-          escaped = true;
-          continue;
-        }
-
-        if (char === '"') {
-          inString = false;
-        }
-
-        continue;
-      }
-
-      completed += char;
-
-      if (char === '"') {
-        inString = true;
-        continue;
-      }
-
-      if (char === "{") {
-        openBraces += 1;
-        continue;
-      }
-
-      if (char === "}") {
-        openBraces = Math.max(0, openBraces - 1);
-      }
-    }
-
-    if (inString) {
-      completed += '"';
-    }
-
-    while (openBraces > 0) {
-      completed += "}";
-      openBraces -= 1;
-    }
-
-    return completed;
+  const config = loadConfig(rawConfig);
+  const secretResolver = async (keyOrProvider: string): Promise<string | undefined> => {
+    return (
+      process.env[keyOrProvider] ??
+      process.env[keyOrProvider.toUpperCase()] ??
+      process.env.GEMINI_API_KEY
+    );
   };
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(slice) as unknown;
-  } catch {
-    try {
-      parsed = JSON.parse(closeIncompleteJsonObject(slice)) as unknown;
-    } catch {
-      throw new Error("AI response JSON is malformed.");
+  const defaultFactory: ClientFactory = (id: ProviderId, cfg, apiKey) => {
+    if (id === "gemini") {
+      return new GeminiClient({ apiKey: apiKey ?? "", defaultModel: cfg.model });
     }
-  }
+    if (id === "anthropic") {
+      return new AnthropicClient({ apiKey, defaultModel: cfg.model });
+    }
+    if (id === "openaiCompatible") {
+      return new OpenAiCompatibleClient({
+        preset: "openai",
+        apiKey,
+        baseUrl: cfg.customEndpoint.url,
+        defaultModel: cfg.model,
+        isLocal: cfg.customEndpoint.isLocal,
+      });
+    }
+    if (id === "ollama") {
+      return new OllamaClient({
+        baseUrl: cfg.ollama.baseUrl,
+        defaultModel: cfg.model,
+      });
+    }
+    return new MockLlmClient();
+  };
 
-  return validateFrontendGenerationResponse(parsed);
+  const gateway = new LlmGateway({
+    config,
+    secrets: secretResolver,
+    clientFactory: defaultFactory,
+  });
+
+  return {
+    id: config.provider,
+    generate: (req) => gateway.generate(req),
+    healthCheck: async () => {},
+  };
 }
 
-function buildFrontendPrompt(idlJson: unknown, programId: string): string {
-  return FRONTEND_PROMPT.replace(
-    "{IDL}",
-    JSON.stringify(idlJson, null, 2),
-  ).replace("{PROGRAM_ID}", programId);
-}
-
-async function callFrontendAIWithRetry(
-  prompt: string,
-): Promise<FrontendGenerationResponse> {
-  try {
-    const rawResponse = await callAI(prompt, "", true);
-    return parseFrontendResponse(rawResponse);
-  } catch (error) {
-    vscode.window.showErrorMessage(
-      "Failed to parse frontend response. Retrying once...",
-    );
-    const retryPrompt = `${prompt}
-
-Your previous response was not valid JSON.
-Return ONLY the JSON object with no other text.
-Do not ask questions. Do not explain choices. Do not write a plan.
-Use the fixed Vite + React + TypeScript stack and output only the frontend schema.`;
-    const retryResponse = await callAI(retryPrompt, "", true);
-    return parseFrontendResponse(retryResponse);
-  }
-}
-
-export async function generateFrontend(workspaceRoot: string): Promise<void> {
+export async function generateFrontend(
+  workspaceRoot: string,
+  clientOverride?: LlmClient
+): Promise<void> {
   try {
     const idlFilePath = await findIDLFile(workspaceRoot);
     if (!idlFilePath) {
@@ -309,9 +190,13 @@ export async function generateFrontend(workspaceRoot: string): Promise<void> {
         cancellable: false,
       },
       async (progress) => {
-        progress.report({ message: "Generating frontend files..." });
-        const fullPrompt = buildFrontendPrompt(idlJson, programId!);
-        generated = await callFrontendAIWithRetry(fullPrompt);
+        progress.report({ message: "Generating frontend files with AI..." });
+        const client = clientOverride ?? createDefaultGateway();
+        generated = await frontendStage({
+          client,
+          idlJson,
+          programId: programId!,
+        });
       },
     );
 
@@ -321,7 +206,9 @@ export async function generateFrontend(workspaceRoot: string): Promise<void> {
 
     const appExists = fs.existsSync(path.join(workspaceRoot, "app"));
     const confirmWrite = await vscode.window.showWarningMessage(
-      `About to write ${generated.files.length} frontend files to your workspace${appExists ? " and overwrite files inside the existing app folder" : ""}:\n\n${generated.files.map((file) => `• ${file.path}`).join("\n")}`,
+      `About to write ${generated.files.length} frontend files to your workspace${
+        appExists ? " and overwrite files inside the existing app folder" : ""
+      }:\n\n${generated.files.map((file) => `• ${file.path}`).join("\n")}`,
       { modal: true },
       "Yes, Write Frontend",
       "Cancel",
