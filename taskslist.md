@@ -426,7 +426,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
 
 ## Phase 7 — Docs, release prep, final audit
 
-- [ ] **T-070 · Docs rewrite**
+- [x] **T-070 · Docs rewrite**
   - Needs: T-069, T-054
   - Scope: `README.md`, `docs/ARCHITECTURE.md`, `docs/PROVIDERS.md`, `docs/SECURITY.md`, `docs/AGENT_PIPELINE.md`, `REGISTRY_DEPLOYMENT.md`, `web-explorer/README.md`, `CHANGELOG.md`
   - Do: README for hackathon builders (what it does, 5-minute quick start, provider options incl. Ollama, safety notes, link to docs). Architecture with mermaid diagrams. Providers doc (how to add one). Security doc (threat model: prompt injection, SSRF, secret leakage, malicious generated code, auth abuse). Fix the dangling `SETUP_DEPLOYMENT_ENV.md` reference. CHANGELOG `2.0.0` with all breaking changes.
