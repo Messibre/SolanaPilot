@@ -415,7 +415,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: tests for clamping, bad pubkeys, cache expiry (fake clock), and the "my programs" filter.
   - Lesson: 04
 
-- [ ] **T-069 · Health, readiness and smoke script**
+- [x] **T-069 · Health, readiness and smoke script**
   - Needs: T-068
   - Scope: `web-explorer/app/api/health/route.ts`, `web-explorer/app/api/ready/route.ts`, `web-explorer/scripts/smoke.mjs`, `docs/release/rollback.md`
   - Do: `/api/health` (process up) and `/api/ready` (env valid, DB reachable, RPC reachable; 503 otherwise). `smoke.mjs` hits a running server (URL argument) and checks: health 200, ready status, malformed POST to an API route → 4xx **not 200**, oversized body rejected, cold-start latency recorded. `rollback.md` states **numeric** rollback triggers (e.g. "error rate > 2% over 5 min", "ready failing > 3 consecutive checks").
