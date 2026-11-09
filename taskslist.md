@@ -440,7 +440,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: a check script (`scripts/check-adrs.mjs`, added to `verify`) fails on any ADR lacking a numeric reversal trigger.
   - Lesson: 10
 
-- [ ] **T-072 · Package the extension**
+- [x] **T-072 · Package the extension**
   - Needs: T-071
   - Scope: `docs/release/vsix-report.md`
   - Do: `npx @vscode/vsce package --no-dependencies` (esbuild bundles) → `.vsix` in the repo root (git-ignored). Record file size, file list, and confirm: no secrets, no `.map`, no tests, no `web-explorer`, icon present. **Do not publish.**
