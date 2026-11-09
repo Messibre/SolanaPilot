@@ -447,7 +447,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: report saved; `.vsix` exists and is ignored by git; package size noted.
   - Lesson: 14
 
-- [ ] **T-073 · Production-readiness audit**
+- [x] **T-073 · Production-readiness audit**
   - Needs: T-072
   - Scope: `docs/READINESS.md`
   - Do: table of the 14 areas → the file/test/ADR that proves each, or an honest "gap" with a proposed task. Run full `verify` on root and `web-explorer`, `anchor test`, secrets scan. Summarize `docs/agent/rejections.md` patterns and every item in `BLOCKERS.md`.

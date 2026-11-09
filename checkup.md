@@ -214,3 +214,4 @@ Failure signatures so far:
 | T-070 | Docs rewrite | 3e84807 | 2026-11-09 08:47 | root verify PASS (354 tests), web verify PASS (57 tests), 0 dead links | 1 | DONE: README, ARCHITECTURE, PROVIDERS, SECURITY, AGENT_PIPELINE, REGISTRY_DEPLOYMENT, web-explorer/README, CHANGELOG 2.0.0 |
 | T-071 | ADR set | 7a2a795 | 2026-11-09 09:02 | root verify PASS (354 tests, ADR check OK), web verify PASS (57 tests) | 1 | DONE: ADRs 0001-0006, scripts/check-adrs.mjs, check:adrs in verify, red-green checked |
 | T-072 | Package the extension | 0eb191f | 2026-11-09 09:09 | root verify PASS (354 tests), web verify PASS (57 tests) | 1 | DONE: solanapilot-1.0.0.vsix (451.84 KB), git-ignored, 0 secrets/maps/tests, vsix-report.md |
+| T-073 | Production-readiness audit | fb806f1 | 2026-11-09 09:26 | all suites PASS (429 tests: 354 root, 57 web, 18 anchor), secrets PASS | 1 | DONE: 14 areas audited, gaps listed, blockers summarized, production sign-off in docs/READINESS.md |
