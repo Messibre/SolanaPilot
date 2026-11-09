@@ -212,3 +212,4 @@ Failure signatures so far:
 | T-069 | Health, readiness and smoke script | 4778993 | 2026-11-09 08:35 | root verify PASS (354 tests), web verify PASS (57 tests), smoke PASS (4/4) | 1 | DONE: GET /api/health (200), GET /api/ready (200/503), POST /api/ready (400/413), smoke.mjs, rollback runbook |
 | AUDIT | Full checkpoint (tasks 65-69) | 4778993 | 2026-11-09 08:37 | root: verify PASS (354 tests), web: verify PASS (57 tests), secrets PASS, log-stat verified | 1 | PASS |
 | T-070 | Docs rewrite | 3e84807 | 2026-11-09 08:47 | root verify PASS (354 tests), web verify PASS (57 tests), 0 dead links | 1 | DONE: README, ARCHITECTURE, PROVIDERS, SECURITY, AGENT_PIPELINE, REGISTRY_DEPLOYMENT, web-explorer/README, CHANGELOG 2.0.0 |
+| T-071 | ADR set | 7a2a795 | 2026-11-09 09:02 | root verify PASS (354 tests, ADR check OK), web verify PASS (57 tests) | 1 | DONE: ADRs 0001-0006, scripts/check-adrs.mjs, check:adrs in verify, red-green checked |

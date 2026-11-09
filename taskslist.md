@@ -433,7 +433,7 @@ Common done-condition for every task (not repeated below): `npm run verify` pass
   - Done when: every command and env var in docs exists in the repo (agent verifies by grep, list in commit body); no dead links.
   - Lesson: 10
 
-- [ ] **T-071 · ADR set**
+- [x] **T-071 · ADR set**
   - Needs: T-070
   - Scope: `docs/adr/`
   - Do: ensure ADRs exist for layout, skills, auth strategy, provider adapter (why no SDKs for 3 providers), pipeline as explicit state graph (why no agent framework), logging approach. Each has Context, Decision, Alternatives, Consequences, and a **numeric** "Reverse this decision if".
